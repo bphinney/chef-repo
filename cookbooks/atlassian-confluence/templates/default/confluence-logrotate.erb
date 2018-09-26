@@ -1,0 +1,10 @@
+/opt/confluence-data/logs/* {
+    copytruncate
+    compress
+    rotate 5
+    missingok
+    notifempty
+    size 1M
+    daily
+    create 0644 confluence confluence
+}

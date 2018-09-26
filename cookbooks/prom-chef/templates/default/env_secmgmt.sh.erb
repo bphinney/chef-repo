@@ -1,0 +1,76 @@
+#!/opt/chef/embedded/bin/ruby
+
+def aws_filter(groupname,listpage,portlist)
+  $aws.security_groups.filter('group-name', groupname).each do |group|
+    cur_list = "#{group.ip_permissions_list}".scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+    ip_list = `curl --silent --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -G https://wiki.prometheanjira.com/display/OP/#{listpage}`.gsub(/<\/?(span|label)>/, "").scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+    if ip_list.count > 1 then
+      ( cur_list - ip_list ).each do |iplist|
+        if iplist != '0.0.0.0'
+          portlist.each do |port|
+            puts "Revoked IP #{iplist}"
+            group.revoke_ingress('tcp', "#{port}", "#{iplist}/32")
+            sleep(1)
+          end
+        end
+      end
+      ( ip_list - cur_list ).each do |iplist|
+         portlist.each do |port|
+           puts "Authorized IP #{iplist}"
+           group.authorize_ingress('tcp', "#{port}", "#{iplist}/32")
+           sleep(1)
+         end
+      end
+    end
+  end
+end 
+
+require 'aws-sdk-v1'
+require 'net/http'
+
+aws_access_key_id = `cat /root/.chef/knife.rb | grep -oP \"aws_access_key_id] = '\\K[^']+\"`.strip
+aws_secret_access_key = `cat /root/.chef/knife.rb | grep -oP \"aws_secret_access_key] = '\\K[^']+\"`.strip
+aws_ec2_az = `curl --silent http://169.254.169.254/latest/meta-data/placement/availability-zone`.strip
+aws_ec2_region = aws_ec2_az[0..-2]
+
+  awscreds = {
+  :access_key_id     => aws_access_key_id,
+  :secret_access_key => aws_secret_access_key,
+  :region            => aws_ec2_region
+}
+
+AWS.config(awscreds)
+$aws = AWS::EC2.new
+
+<% 
+@env_secgroup.each do |secgrp,params|
+-%>
+  aws_filter('<%= secgrp -%>','<%= params['list_page'] -%>',[ <%= params['port_list'] -%> ])
+<%
+end
+ -%>
+
+<% if @env_secrds == "true" then -%>
+
+$rds = AWS::RDS.new
+
+rds_ip_list = `curl --silent --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -G https://wiki.prometheanjira.com/display/OP/MySQL+Server+Direct+Access+List+-+Lower+Env+RDS`.gsub(/<\/?(span|label)>/, "").scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+
+rds_cur_list = "#{$rds.client.describe_db_security_groups.inspect}".scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+
+if rds_ip_list.count > 1 then
+  ( rds_cur_list - rds_ip_list ).each do |iplist|
+    if iplist != '0.0.0.0'
+      puts "Revoked IP #{iplist}"
+      $rds.client.revoke_db_security_group_ingress( options = { 'db_security_group_name' => 'mysql', 'cidrip' => "#{iplist}/32" } )
+      sleep(1)
+    end
+  end
+  ( rds_ip_list - rds_cur_list ).each do |iplist|
+    puts "Authorized IP #{iplist}"
+    $rds.client.authorize_db_security_group_ingress( options = { 'db_security_group_name' => 'mysql', 'cidrip' => "#{iplist}/32" } )
+    sleep(1)
+  end
+end
+
+<% end -%>

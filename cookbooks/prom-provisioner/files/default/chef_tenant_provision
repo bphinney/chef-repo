@@ -1,0 +1,260 @@
+#!/opt/chef/embedded/bin/ruby -W0
+######################################################################
+# Promethean DevOps Tenant Schema Provisioning Tool                 ##
+#                                                                   ##
+# Copyright Promethean World Inc. 2016                              ##
+######################################################################
+## Setup Includes                                                   ##
+######################################################################
+
+require 'aws-sdk'              # For access to AWS
+require 'chef-api'             # For accessing Chef Data
+require 'highline/import'      # For console prompts/menus
+require 'mysql2'               # For accessing MySQL/RDS/Aurora
+require 'net/http'             # For post-tenant validation
+require 'optparse'             # For arguments
+require 'yaml'                 # For config files
+require 'timeout'              # For url validation timeout
+
+# loads prom-ops library
+Dir[File.join(__dir__, 'prom-ops', '*.rb')].each { |file| require file }
+
+# Disable the annoying SSL warning messages
+ChefAPI.log_level = :fatal
+
+
+# Method searches for unprovisioned tenants and provides a selectable menu
+# Returns status/config hash for tenant
+def choose_unprovisioned_tenant
+  dbcheck = TenantCheck.new
+  unprovisioned_tenants = {}
+  list_tenants = dbcheck.find_unprovisioned_tenants
+
+  # Saves an array of tenant_config hashes for each unprovisioned tenant
+  # This mess is required to pass each tenant's values into the hash
+  list_tenants.each_with_index do |tenant, key|
+    t_config, t_status = dbcheck.check_tenant_status(tenant)
+    configs = []
+    configs << t_config
+    configs << t_status
+    unprovisioned_tenants.store(key, configs)
+  end
+  logger.info 'Tenant checks complete.'
+  # Selection Menu
+  logger.info "Provisionable tenants:\n\n"
+  choose do |menu|
+    menu.prompt = "\nProvision which tenant (or exit)?:"
+    unprovisioned_tenants.each do |_k, configs|
+      tconfig = configs[0]
+      tstatus = configs[1]
+      menu.choice(tconfig['tenant_name']) do
+        @selection = tconfig['tenant_name']
+        @config    = tconfig
+        @status    = tstatus
+      end
+    end
+    menu.choice('exit') { exit }
+  end
+  return @selection, @config, @status
+end
+
+
+# Method performs necessary steps for tenant provisioning
+def provision_tenant(dbcheck, tenant_config, tenant_status)
+
+  # Provisioning requires sudo/root for some operations
+  raise 'Please run provisioner under sudo/root' unless Process.uid == 0
+
+  dbprovision = TenantProvision.new
+  tenant_name = tenant_config['tenant_name']
+
+  logger.info "Provisioning #{tenant_name}..."
+
+  # Provision schema and server repo
+  if tenant_status['schema_exists'] == false
+    dbprovision.remote_schema_create(dbcheck, tenant_config, tenant_status)
+    dbprovision.add_server_repo(tenant_config, tenant_status)
+  else
+    logger.info 'foundation schema already exists, skipping'
+  end
+  
+  if tenant_status['zone_name'] == 'classflow.cn'
+    logger.info "Zone detected as china leaving cname and fronend update as manual operation."
+  else
+    # Provision cnames
+    dbprovision.provision_dns_route_53(dbcheck, tenant_config, tenant_status)
+
+    # Initiate vhost updates through chef
+    dbprovision.chef_vhost_update(dbcheck, tenant_config, tenant_status)
+
+    # Validate the collabserver url to ensure operation
+    dbcheck.validate_tenant_urls(tenant_name)
+  end
+
+  # Review final status and mark as provisioned if successful
+  dbprovision.mark_tenant_provisioned(tenant_config, tenant_status)
+  logger.info 'Tenant provisioning complete.'
+
+  # Temporary schema timers
+  show_time('Liquibase', $time_start, $time_liquibase)
+  show_time('Bulkload', $time_liquibase, $time_bulkload)
+  show_time('Reindex', $time_bulkload, $time_reindex)
+  show_time('Total Schema Creation', $time_start, $time_reindex)
+end
+
+# Method provides mechanism to bulk-provision tenants
+def bulk_provision_tenants(dbcheck, tenant_array)
+
+  # Provisioning requires sudo/root for some operations
+  raise 'Please run provisioner under sudo/root' unless Process.uid == 0
+
+  dbprovision = TenantProvision.new
+
+  tenant_array.each do |tenant|
+    t_config    = tenant[0]
+    t_status    = tenant[1]
+    tenant_name = t_config['tenant_name']
+
+    logger.info "Provisioning #{tenant_name}..."
+
+    # Provision schema and server repo
+    if t_status['schema_exists'] == false
+      dbprovision.remote_schema_create(dbcheck, t_config, t_status)
+      dbprovision.add_server_repo(t_config, t_status)
+    else
+      logger.info 'foundation schema already exists, skipping'
+    end
+    # Provision cnames
+    dbprovision.provision_dns_route_53(dbcheck, t_config, t_status)
+  end
+
+  # Initiate vhost updates through chef
+  dbprovision.bulk_vhost_update(dbcheck, tenant_array)
+
+  tenant_array.each do |tenant|
+    t_config    = tenant[0]
+    t_status    = tenant[1]
+    tenant_name = t_config['tenant_name']
+
+    # Validate the collabserver url to ensure operation
+    dbcheck.validate_tenant_urls(tenant_name)
+    # Review final status and mark as provisioned if successful
+    dbprovision.mark_tenant_provisioned(t_config, t_status)
+    logger.info 'Tenant provisioning complete.'
+  end
+end
+
+# Times schema creation
+def show_time(type, time_start, time_end)
+  delta = time_end - time_start
+  logger.info "#{type} processing time: #{delta.to_i} seconds."
+rescue
+  logger.info "Time skipped for #{type} processing."
+end
+
+
+###########
+## Main  ##
+###########
+
+# Load default values
+default_config = {
+  'daemon'     => 'false',               # fork process
+  'log_level'  => 'info',                # debug-info-warn-error-fatal-unknown
+  'log_file'   => '',                    # $DIR/file.log or '' for STDOUT
+  'log_header' => '(chef->tenant_prov):' # Header
+}
+conf = ConfigFile.new(default_config)
+# Overwrite defaults with conf file values
+opts = conf.config_location("#{__dir__}/conf/provisioner.conf")
+
+# Initiate custom logger
+include Logging
+Logging.config(opts['log_header'], opts['log_level'], opts['log_file'])
+
+OptionParser.new do |params|
+  params.on('-h', '--help', 'Help') do
+    puts params
+    exit
+  end
+  params.on('--tenant <TENANT>', 'tenantname') do |tenant|
+    opts['tenant'] = tenant
+  end
+  params.on('--refresh', 'refresh tenant data bag') do |refresh|
+    opts['refresh'] = refresh
+  end
+  params.on('--sftp', 'configure tenant sftp account') do |sftp|
+    opts['sftp'] = sftp
+  end
+  params.on('--check', 'find/check tenants') do |check|
+    opts['check'] = check ? true : false
+  end
+  params.on('--provision', 'provision tenant') do |provision|
+    opts['provision'] = provision ? true : false
+  end
+  params.on('--validate', 'validate urls') do |validate|
+    opts['validate'] = validate ? true : false
+  end
+  params.on('--daemon', 'fork to background') do |daemon|
+    opts['daemon'] = daemon ? true : false
+  end
+  params.on('--auto', 'perform actions on all unprovisioned') do |auto|
+    opts['auto'] = auto ? true : false
+  end
+  params.on('--sftp', 'configure tenant sftp account') do |sftp|
+    opts['sftp'] = sftp
+  end
+  # Inactive
+  # params.on('--email <EMAIL>', 'send email') do |email|
+  #   opts['email'] = email
+  # end
+end.parse!
+
+daemonize if opts['daemon'] == true
+
+dbcheck = TenantCheck.new
+
+# No tenant specified
+if opts['tenant'].nil?
+  # List unprovisioned tenants (--check)
+  if opts['check'] == true
+    opts['tenant'], t_config, t_status = choose_unprovisioned_tenant
+    provision_tenant(dbcheck, t_config, t_status)
+  # Automated passive tenant checking ( --auto )
+  elsif opts['auto'] == true
+    all_tenants = dbcheck.find_unprovisioned_tenants
+    tenant_array = []
+    all_tenants.each do |tenant|
+      t_config, t_status = dbcheck.check_tenant_status(tenant, opts['auto'])
+      tenant_array << [ t_config, t_status ]
+    end
+    bulk_provision_tenants(dbcheck, tenant_array) if opts['provision'] == true
+  end
+# tenant specified ( --tenant )
+elsif opts['tenant']
+  # Refresh data bag for tenant ( --refresh )
+  if opts['refresh']
+    logger.info "#{opts['tenant']} - Refreshing DATA BAG..."
+    dbcheck.chef_refresh_tenant(opts['tenant'])
+  # Validate tenant urls ( --validate )
+  elsif opts['validate'] == true
+    dbcheck.validate_tenant_urls(opts['tenant'])
+  # Check provisioning status of single tenant ( --check )
+  elsif opts['check'] == true
+    dbcheck.check_tenant_status(opts['tenant'])
+  # Lookup tenant sftp credentials, or generate and return them ( --sftp )
+  elsif opts['sftp'] == true
+    t_config, t_status = dbcheck.check_tenant_status(opts['tenant'])
+    dbprovision = TenantProvision.new
+    dbprovision.produce_tenant_sftp_creds(dbcheck, t_config, t_status)
+  # Provision the tenant ( --provision )
+  elsif opts['provision'] == true
+    t_config, t_status = dbcheck.check_tenant_status(opts['tenant'])
+    provision_tenant(dbcheck, t_config, t_status)
+  end
+else
+  puts 'Additional options required, exiting....'
+end
+
+logger.close
+exit

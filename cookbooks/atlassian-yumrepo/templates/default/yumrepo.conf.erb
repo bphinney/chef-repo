@@ -1,0 +1,57 @@
+<VirtualHost  *:80>
+    ServerAdmin webmaster@prometheanjira.com
+    DocumentRoot /opt/yum-repo/
+    ServerName yumrepo.prometheanjira.com
+    ErrorLog logs/yumrepo-error_log
+    CustomLog logs/yumrepo-access_log common
+
+    Alias /windows /opt/yum-repo/windows
+    Alias /standalone /opt/yum-repo/windows
+    <Directory /opt/yum-repo/windows>
+     Options Indexes
+     Order allow,deny
+     Allow from all
+
+<% if node['security'] == 'true' -%>
+    AuthType Digest
+    AuthName "Promethean RESTRICTED"
+    AuthDigestDomain /opt/yum-repo/windows http://yumrepo.prometheanjira.com/windows
+
+    AuthDigestProvider file
+    AuthUserFile /opt/yum-repo/windows/.digest_pw
+    Require valid-user
+<% end -%>
+    </Directory>
+
+<% %w{common core testing release special common7 special7 ActivConnect ActivConnectDev TestFlight cfserver}.each do |dir| -%>
+    Alias /<%= dir %> /opt/yum-repo/<%= dir %>
+    <Directory /opt/yum-repo/<%= dir %>>
+     Options Indexes
+     Order allow,deny
+     Allow from all
+    </Directory>
+
+<% end -%>
+
+    <Directory /opt/yum-repo/>
+     Options -Indexes
+     Order allow,deny
+     Allow from none
+    </Directory> 
+
+<% %w{extensions devextensions testextensions}.each do |exten| -%>
+    Alias /<%= exten %> /opt/yum-repo/<%= exten %>
+    <Directory /opt/yum-repo/<%= exten %>>
+      Options Indexes
+      Order allow,deny
+      Allow from all
+    </Directory>
+    AddType application/x-xpinstall .xpi
+    AddType application/x-chrome-extension .crx
+    AddType application/octet-stream .safariextz
+    AddType application/x-opera-extension .oex
+
+<% end -%>
+
+
+</VirtualHost>

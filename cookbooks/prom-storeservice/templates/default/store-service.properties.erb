@@ -1,0 +1,101 @@
+# RabbitMQ Section for notification-service
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.enable=true
+<% end -%>
+rabbitmq.addresses=<%= @rmqaddresses %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.exchange=classflow.topic
+rabbitmq.classflow.notification.consumers=2
+# IN-1608
+rabbitmq.classflow.storeservice.consumers=<%= node['rabbitmq']['storeservice']['consumers'] %>
+rabbitmq.classflow.paypal.delayedpayment.consumers=<%= node['rabbitmq']['paypal']['delayedpayment']['consumers'] %>
+
+
+############################
+# store-service properties #
+############################
+
+application.jmx.name=storeService
+#datasource
+spring.datasource.storeService.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.storeService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['store-service']['database'] %>?autoReconnect=true
+spring.datasource.storeService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.storeService.username=<%= node['store-service']['username']%>
+spring.datasource.storeService.password=<%= node['store-service']['password']%>
+spring.datasource.storeService.initialSize=5
+spring.datasource.storeService.minIdle=5
+spring.datasource.storeService.maxIdle=5
+spring.datasource.storeService.maxActive=10
+spring.datasource.storeService.maxWait=30000
+spring.datasource.storeService.testOnBorrow=true
+spring.datasource.storeService.validationQuery=SELECT 1
+spring.datasource.storeService.defaultCatalog=<%= node['store-service']['database'] %>
+
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+
+liquibase.storeService.driver=com.mysql.jdbc.Driver
+liquibase.storeService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['store-service']['database'] %>?autoReconnect=true
+liquibase.storeService.defaultSchema=<%= node['store-service']['database'] %>
+liquibase.storeService.username=<%= node['store-service']['username'] %>
+liquibase.storeService.password=<%= node['store-service']['password'] %>
+
+# Used in RestTemplate spring config
+http.socket.user.timeout.default=5000
+http.connect.user.timeout.default=200
+
+environment.name=<%= node.chef_environment %>
+
+# smtp config - IN-1480
+smtp.host=<%= @emailserver %>
+smtp.port=587
+smtp.ssl=false
+smtp.user=<%= @emailuser %>
+smtp.password=<%= @emailpass %>
+smtp.fromaddress=<%= node['smtp']["smtp_from_address"] %>
+mail.protocol=smtp
+
+# IN-1588
+paypal.service.api=<%= node['paypal']['api'] %>
+paypal.transaction.url.template=<%= node['paypal']['transurl'] %>
+paypal.service.user.id=<%= node['paypal']['serviceuser'] %>
+paypal.service.user.password=<%= node['paypal']['servicepass'] %>
+paypal.service.user.signature=<%= node['paypal']['serviceusersig'] %>
+paypal.service.app.id=<%= node['paypal']['serviceappid'] %>
+paypal.promethean.currency.accounts={ <%= node['paypal']['currency_account'] %> }
+
+# IN-1646
+# delayedpayment
+rabbitmq.classflow.paypal.delayedpayment.queuename=ha.paypal.delayedpayment
+rabbitmq.classflow.paypal.delayedpayment.error.queuename=ha.paypal.delayedpayment.error
+rabbitmq.classflow.paypal.delayedpayment.routingkey=paypal.delayedpayment.*
+rabbitmq.classflow.paypal.delayedpayment.consumers=2
+rabbitmq.classflow.paypal.delayedpayment.error.routingkey=paypal.delayedpayment.error.*
+
+#rabbitmq: store service
+rabbitmq.classflow.storeservice.queuename=ha.storeservice
+rabbitmq.classflow.storeservice.routingkey=storeservice*
+rabbitmq.classflow.storeservice.error.queuename=ha.storeservice.error
+rabbitmq.classflow.storeservice.error.routingkey=storeservice.error.*
+rabbitmq.classflow.storeservice.consumers=1
+
+## paypal delayed payment day
+paypal.delayed.payment.day_of_month=15
+paypal.delayed.payment.hour_of_day=18
+
+## percentage.  eg, 35%
+paypal.promethean.commission=0.35
+
+## dollar amount. eg, $0.25
+paypal.promethean.fee=0.25
+
+## determins payment action to use:  PAY or PAY_PRIMARY
+paypal.delayed.payment.enabled=false
+
+# IN-1642 Properties for api basic auth
+communication.internal.api.username=<%= node['af']['intapiuser'] %>
+communication.internal.api.password=<%= node['af']['intapipass'] %>

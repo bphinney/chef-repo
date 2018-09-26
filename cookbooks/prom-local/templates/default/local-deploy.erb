@@ -1,0 +1,40 @@
+#!/bin/bash
+# UI deploy
+for i in `ls /opt/www 2>/dev/null`; do
+if [ -f "/vagrant/$i.zip" ]; then
+  cd /opt/www/$i
+  sudo rm -rf *
+  sudo unzip /vagrant/$i.zip && rm -rf /vagrant/$i.zip
+  if [ -d dist ]; then
+    sudo mv dist/* ./
+    sudo rm -rf dist
+  fi
+else
+  echo "/vagrant/$i.zip not present"
+fi
+done
+
+for h in `ls /vagrant/*.war 2>/dev/null`; do
+count=`echo $h | grep -o '/' | wc -l`
+field=$(( $count + 1 ))
+app=`echo $h | cut -d '/' -f$field`
+app_dir=`echo $app | cut -d "." -f1`
+if [ -f $h ]; then
+  sudo service activtomcat stop; sudo rm -rf /opt/tomcat/webapps/$app_dir; sudo mv $h /opt/tomcat/webapps/ ; sudo chown tomcat.tomcat /opt/tomcat/webapps/*.war; sudo service activtomcat start
+else
+  echo "No $h war file in /vagrant"
+fi
+done
+
+for h in `ls /vagrant/*.jar 2>/dev/null`; do
+count=`echo $h | grep -o '/' | wc -l`
+field=$(( $count + 1 ))
+app=`echo $h | cut -d '/' -f$field`
+app_dir=`echo $app | cut -d "." -f1`
+if [ -f $h ]; then
+  sudo service collabserver stop; sudo rm -rf /opt/vertx/bin/$app; sudo mv $h /opt/vertx/bin/ ; sudo chown tomcat.tomcat /opt/vertx/bin/*.jar; sudo service collabserver start
+else
+  echo "No $h jar file in /vagrant"
+fi
+done
+

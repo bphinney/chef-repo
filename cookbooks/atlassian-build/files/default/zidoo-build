@@ -1,0 +1,64 @@
+#!/bin/bash
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:/usr/local/arm-2012.09/bin:/sbin:$PATH
+export CLASSPATH=.:$JAVA_HOME/lib:$JAVA_HOME/jre/lib:$CLASSPATH
+export JRE_HOME=$JAVA_HOME/jre
+version=$1
+# clean all components from build
+cd /opt/zidoo-x6-pro/u-boot
+make clean
+cd /opt/zidoo-x6-pro/kernel
+make clean
+cd /opt/zidoo-x6-pro
+make clean
+
+# build u-boot
+cd /opt/zidoo-x6-pro/u-boot
+make rk3368_defconfig && echo "Config completed" || { echo "U-boot config failed"; exit 1; }
+make ARCHV=aarch64 && echo "ARCHV completed" || { echo "U-boot ARCHV failed"; exit 1; }
+
+# build kernal
+cd /opt/zidoo-x6-pro/kernel
+make ARCH=arm64 rockchip_defconfig && echo "Rockchip config completed" || { echo "Rockchip config failed"; exit 1; }
+make ARCH=arm64 rk3368-box.img -j4 && echo "Rockchip image completed" || { echo "Rockchip image failed"; exit 1; }
+
+#setup android build env
+cd /opt/zidoo-x6-pro
+source build/envsetup.sh
+lunch rk3368_box-userdebug && echo "rk3368 built" || { echo "rk3368 failed"; exit 1; }
+
+# Build Android System
+#croot
+make -j16 && echo "Android System built" || { echo "Android system build failed"; exit 1; }
+
+# Build Platform Img Set
+cd /opt/zidoo-x6-pro
+./mkimage.sh ota && echo "Platform Image completed" || { echo "Platform Image build failed"; exit 1; }
+
+# Build missing drmsigntool
+source build/envsetup.sh
+cd /opt/zidoo-x6-pro/build/tools/drmsigntool
+mm -B && echo "Drmsigntool built" || { echo "Drmsigntool build failed"; exit 1; }
+
+# Build OTA Update Package
+cd /opt/zidoo-x6-pro
+make otapackage && echo "otapackage built" || { echo "otapackage build failed"; exit 1; }
+
+# Clean up old files and target directory
+if [ -d /opt/zidoo-x6-pro/target ]; then
+  rm -rf /opt/zidoo-x6-pro/target 
+fi
+mkdir /opt/zidoo-x6-pro/target
+# Move artifact to new target directory and do an md5sum.
+cp /opt/zidoo-x6-pro/out/target/product/rk3368_box/rk3368_box-ota-eng.bamboo.zip /opt/zidoo-x6-pro/target/update.zip && echo "otapackage moved to target dir" || { echo "otapackage move failed"; exit 1; }
+echo "Update URL will be http://cdn-otaupdate.prometheanworld.com/${version}/update.zip" > /opt/zidoo-x6-pro/target/md5sum.txt
+echo "Image URL will be http://cdn-otaupdate.prometheanworld.com/${version}/image/image.tar.gz" >> /opt/zidoo-x6-pro/target/md5sum.txt
+md5sum /opt/zidoo-x6-pro/target/update.zip >> /opt/zidoo-x6-pro/target/md5sum.txt && echo "md5sum file created" || { echo "md5sum file creation failed"; exit 1; }
+
+# Publish update file to Amazon S3
+if [ -f ~/.s3cfg ]; then
+  /usr/bin/s3cmd put /opt/zidoo-x6-pro/target/update.zip s3://s3-otaupdate.prometheanworld.com/${version}/ && echo "Update moved to Amazon S3" || { echo "Error moving Update to S3"; exit 1; }
+  /usr/bin/s3cmd put /opt/zidoo-x6-pro/target/md5sum.txt s3://s3-otaupdate.prometheanworld.com/${version}/ && echo "md5sum moved to Amazon S3" || { echo "Error moving md5sum to S3"; exit 1; }
+else
+  echo "No S3cmd config file found, can't publish artifacts."; exit 1
+fi

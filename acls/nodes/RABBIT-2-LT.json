@@ -1,0 +1,57 @@
+{
+  "create": {
+    "actors": [
+      "RABBIT-2-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "read": {
+    "actors": [
+      "RABBIT-2-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "update": {
+    "actors": [
+      "RABBIT-2-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "delete": {
+    "actors": [
+      "RABBIT-2-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "grant": {
+    "actors": [
+      "RABBIT-2-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  }
+}

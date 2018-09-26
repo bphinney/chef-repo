@@ -1,0 +1,91 @@
+#!/bin/bash
+xenv=''
+xcmd=''
+tag=$1
+disttype=$2
+lastbuild=`ls -t1 ~/artifacts/${tag}/shared/ | head -1`
+appname=`echo $disttype | cut -f3 -d'_'`
+echo "Distributing plan: ${tag}"
+echo "Latest build is: ${lastbuild}"
+echo "Executing Distribution type: ${disttype}"
+case $disttype in
+  windows_standalone_*)
+    version=`cat ~/artifacts/${tag}/shared/${lastbuild}/version/version.txt | tr -d "\n\r" | rev | cut -c2- | rev`
+    ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@10.0.1.109 "rm -f /opt/yum-repo/windows/${appname}/Testing/${appname}-latest.zip; rm -f /opt/yum-repo/windows/${appname}/Testing/${appname}-${version}.zip; mkdir -p /opt/yum-repo/windows/${appname}/Testing"
+    scp -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false ~/artifacts/${tag}/shared/${lastbuild}/${appname}/${appname}.zip root@10.0.1.109:/opt/yum-repo/windows/${appname}/Testing/${appname}-${version}.zip
+    exit 0
+    ;;
+  windows_package_*)
+    version=`cat ~/artifacts/${tag}/shared/${lastbuild}/version/version.txt | tr -d "\n\r" | rev | cut -c2- | rev`
+    ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@10.0.1.109 "rm -f /opt/yum-repo/windows/${appname}/Testing/${appname}-${version}.zip; mkdir -p /opt/yum-repo/windows/${appname}/Testing"
+    scp -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false ~/artifacts/${tag}/shared/${lastbuild}/${appname}/${appname}.zip root@10.0.1.109:/opt/yum-repo/windows/${appname}/Testing/${appname}-${version}.zip
+    exit 0
+    ;;
+  frontend_major_*)
+    serverlist="<%= @frontendmajor %>"
+    ;;
+  frontend_minor_*)
+    serverlist="<%= @frontendminor %>"
+    ;;
+  backend_major_*)
+    serverlist="<%= @backendmajor %>"
+    ;;
+  backend_minor_*)
+    serverlist="<%= @backendminor %>"
+    ;;
+  *)
+    echo "Error: Unknown distribution type $disttype"
+    exit 1
+    ;;
+esac
+case $disttype in
+  *_major_*)
+    xenv="${xenv}dev2\n"
+    ;;
+  *_minor_*)
+    xenv="${xenv}dev\n"
+    ;;
+esac
+case $disttype in
+  frontend_*)
+    xcmd="${xcmd}ssf\n"
+    find ~/artifacts/${tag}/shared/${lastbuild} | grep dist.zip | xargs -I {} cp {} .
+    for i in $serverlist; do
+      scp -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false ./dist.zip root@$i:/opt/storage/dist.zip
+      ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$i "rm -rf /opt/www/${appname}; mkdir -p /opt/www/${appname}; mv /opt/storage/dist.zip /opt/www/${appname}; cd /opt/www/${appname}; unzip /opt/www/${appname}/dist.zip; cd ..; chown -R apache. /opt/www/${appname}; rm -f /opt/storage/dist.zip"
+    done
+    ;;
+  backend_*)
+    case $appname in
+      flipchart)
+        cd ~/artifacts/${tag}/shared/${lastbuild}
+        rm -f ./flipchart.zip
+        zip flipchart.zip *
+        for i in $serverlist; do
+          scp -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false ./flipchart.zip root@$i:/opt/storage/flipchart.zip
+          ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$i "mkdir -p /opt/storage/lib64; cd /opt/storage/lib64; rm -rf /usr/lib64/libflip*; rm -rf /opt/storage/lib64/*; unzip /opt/storage/flipchart.zip; mv /opt/storage/lib64/lib* /usr/lib64/; ldconfig; mv /opt/storage/lib64/flipchart-cmdline /usr/local/sbin/flipchart-cmdline; chmod +x /usr/local/sbin/flipchart-cmdline; service activtomcat stop; sleep 10; rm -rf /opt/tomcat/webapps/flipchart-integration; rm -rf /opt/tomcat/webapps/flipchart-integration.war; mv /opt/storage/lib64/flipchart-integration.war /opt/tomcat/webapps/flipchart-integration.war; chown tomcat:tomcat /opt/tomcat/webapps/flipchart-integration.war; service activtomcat start"
+        done
+        ;;
+      foundation-maint)
+        find ~/artifacts/${tag}/shared/${lastbuild} | grep foundation-maint-assembled.jar | xargs -I {} cp {} .
+        for i in $serverlist; do
+          scp -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false ./foundation-maint-assembled.jar root@$i:/opt/tomcat/bin/foundation-maint-assembled.jar
+          ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$i "rm -rf /opt/tomcat/bin/maint; mkdir -p /opt/tomcat/bin/maint; mv /opt/tomcat/bin/foundation-maint-assembled.jar /opt/tomcat/bin/maint; cd /opt/tomcat/bin/maint; jar xf /opt/tomcat/bin/maint/foundation-maint-assembled.jar; chown -R tomcat. /opt/tomcat/bin/maint; rm -f /opt/tomcat/bin/maint/foundation-maint-assembled.jar"
+        done
+        ;;
+      *)
+        find ~/artifacts/${tag}/shared/${lastbuild} | grep ${appname}.war | xargs -I {} cp {} .
+        for i in $serverlist; do
+          scp -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false ./${appname}.war root@$i:/opt/storage/${appname}.war
+          ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$i "rm -rf /opt/tomcat/webapps/${appname}*; mv /opt/storage/${appname}.war /opt/tomcat/webapps/${appname}.war; chown tomcat. /opt/tomcat/webapps/${appname}.war"
+        done
+        ;;
+    esac
+    xcmd="${xcmd}ssb\n"
+    ;;
+esac
+for tcmd in `printf "${xcmd}"|sort|uniq`; do
+  for tenv in `printf "${xenv}"|sort|uniq`; do
+    curl -s http://10.0.2.227:4567/api -d 'apikey='"$bamboo_apikeypassword" -d "x=${tcmd}" -d "env=${tenv}"
+  done
+done

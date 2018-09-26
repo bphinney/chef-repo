@@ -1,0 +1,97 @@
+#!/opt/chef/embedded/bin/ruby
+######################################################################
+# Promethean Aws s3 IP Whitelisting Tool for Vagrant Image Access   ##
+#                                                                   ##
+# Constructs and updates an Aws s3 IAM Bucket Policy                ##
+# To allow access to vagrant instance from approved IPs only.       ##
+# Copyright Promethean World Inc. 2015                              ##
+#                                                                   ##
+######################################################################
+
+require 'aws-sdk'  # v2 API Aws-SDK gem
+require 'json'
+gem 'chef-api', '>= 0.5.1'
+require 'chef-api'
+
+ChefAPI::log_level = :fatal # Disables annoying SSL warning messages
+
+File.open(ENV['HOME']+'/.chef/knife.rb').each do |line|
+  if line.match("chef_server_url"); $client_uri  = line.scan(/'([^']*)'/).join(" "); end
+  if line.match("client_key");      $client_key  = line.scan(/'([^']*)'/).join(" "); end
+  if line.match("node_name");       $client_node = line.scan(/'([^']*)'/).join(" "); end
+end
+
+$connection = ChefAPI::Connection.new(
+  client: $client_node,
+  key:  $client_key,
+  ssl_verify: false,
+  endpoint: $client_uri
+)
+
+def auth_ip_by_group(ip_array, listpage)
+  ip_list = `curl --silent --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -G https://wiki.prometheanjira.com/display/OP/#{listpage}`.strip.gsub(/<\/?(span|label)>/, "").scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+  ipv6_list = `curl --silent --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -G https://wiki.prometheanjira.com/display/OP/#{listpage}`.strip.gsub(/<\/?(span|label)>/, "").scan(/(?:[0-9a-fA-F]{1,4}:){7,7}(?:[0-9a-fA-F]{1,4})/).uniq
+
+  for x in 0..ip_list.length-1
+    ip_array << "#{ip_list[x]}/32".to_s if x != '0.0.0.0'
+  end
+  
+  for y in 0..ipv6_list.length-1
+    ip_array << "#{ipv6_list[y]}/128".to_s if y != '::'
+  end
+  return ip_array.sort.uniq
+end
+
+# Ip whitelisting s3 bucket policy for Aws IAM
+def s3_bucket_whitelist_policy(whitelist)
+  whitelist = {
+    "Version"   => "2012-10-17", # Amazon policy version
+    "Id"        => "s3IPWhitelist", # Policy Name in IAM
+    "Statement" => [{
+      "Sid" =>"IPAllow",
+      "Effect" => "Allow",
+      "Principal" => "*",
+      "Action" => [
+        "s3:Get*",
+        "s3:List*"
+        ],
+      "Resource" => "arn:aws:s3:::vagrant-centos/*",
+      "Condition" => { 
+        "IpAddress" => { 
+          "aws:SourceIp" => $full_whitelist
+          }
+        }
+      }
+    ]
+  }.to_json.to_s # aws-sdk requires JSON formatted string
+  return whitelist
+end
+
+
+
+$full_whitelist = Array.new
+jira_envs = "Lower+Environment+Access+-+Classflow Production+Support+-+Classflow Development+Support+-+Classflow"
+jira_envs.split(' ').each do |url|
+  $full_whitelist = auth_ip_by_group($full_whitelist, url.strip)
+end
+
+s3_ip_whitelist = s3_bucket_whitelist_policy($full_whitelist)
+
+$aws_s3_region        = `curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document |grep region|awk -F: '{print $2}' | cut -d'"' -f 2`.strip!
+$aws_access_key_id     = "<%= @access_key_id %>"
+$aws_secret_access_key = "<%= @secret_access_key %>"
+
+# Aws SDK v2 Credentials
+Aws.config.update({
+  region: $aws_s3_region,
+  credentials: Aws::Credentials.new($aws_access_key_id, $aws_secret_access_key),
+})
+
+$aws = Aws::S3::Client.new
+
+# Applies new whitelist bucket policy to IAM for s3
+$aws.put_bucket_policy({
+  bucket: "vagrant-centos", 
+  policy: "#{s3_ip_whitelist}", 
+})
+

@@ -1,0 +1,36 @@
+ProxyRequests             Off
+ProxyPreserveHost         On
+ProxyTimeout              <%= node['apache']['proxy_timeout'] %>
+
+<Proxy balancer://authserver>
+
+    AllowOverride AuthConfig Limit
+
+    Include conf.d/.htaccess
+
+    DirectoryIndex index.html
+
+<% if node.chef_environment.include?("local") -%>
+    BalancerMember http://127.0.0.1:8080 route=127.0.0.1
+<% elsif node['tomcat']['sessions'] == "stateful" -%>
+  <% @authserverworkers.each do |a| -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 route=<%= a['ipaddress'] %> retry=<%= node['apache']['proxy_retry'] %>
+  <% end -%>
+<% elsif node['tomcat']['sessions'] == "stateless" -%>
+  <% @authserverworkers.each do |a| -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 retry=<%= node['apache']['proxy_retry'] %>
+  <% end -%>
+<% end -%>
+
+</Proxy>
+
+<Location /authserver>
+
+<% unless node['tomcat']['sessions'] == "stateless" -%>
+ProxyPass  balancer://authserver/authserver stickysession=JSESSIONID|jsessionid failonstatus=<%= node['apache']['proxy_error'] %>
+<% else -%>
+ProxyPass  balancer://authserver/authserver failonstatus=<%= node['apache']['proxy_error'] %>
+<% end -%>
+
+</Location>
+

@@ -1,0 +1,8 @@
+#!/bin/sh
+# hostsfile-update (c) 2014 Promethean
+/bin/cp -f /etc/hosts /tmp/hosts_update
+chef-client -o "recipe[prom-default::hostsfile_update]"
+[[ `diff /etc/hosts /tmp/hosts_update` != "" ]] && {
+  knife node list | grep -v chef- | xargs -I"SERVER" -n1 sh -c "ssh SERVER /usr/bin/chef-client -o \"recipe[prom-default::hostsfile_update]\""
+}
+echo "hostsfile-update run $(date): Pass"

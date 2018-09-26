@@ -1,0 +1,15 @@
+#!/bin/bash
+version=$1
+cd /opt/zidoo-x6-pro/target
+tar -czvf /opt/zidoo-x6-pro/target/image.tar.gz /opt/zidoo-x6-pro/kernel/kernel.img /opt/zidoo-x6-pro/kernel/resource.img \
+/opt/zidoo-x6-pro/rockdev/Image-rk3368_box/boot.img /opt/zidoo-x6-pro/rockdev/Image-rk3368_box/misc.img \
+/opt/zidoo-x6-pro/rockdev/Image-rk3368_box/recovery.img /opt/zidoo-x6-pro/rockdev/Image-rk3368_box/system.img \
+/opt/zidoo-x6-pro/u-boot/uboot.img /opt/zidoo-x6-pro/u-boot/trust.img /opt/zidoo-x6-pro/u-boot/RK3368MiniLoaderAll_V2.40.bin \
+&& echo "Image creation complete" || { echo "Image creation failed."; exit 1; }
+
+# Publish image files
+if [ -f ~/.s3cfg ]; then 
+  /usr/bin/s3cmd put /opt/zidoo-x6-pro/target/image.tar.gz s3://s3-otaupdate.prometheanworld.com/${version}/image/ && echo "Moved Image files to Amazon S3" || { echo "Error moving image files to Amazon S3"; exit 1; }
+else
+  echo "No S3cmd config file found, can't publish artifact"; exit 1
+fi

@@ -1,0 +1,10 @@
+#!/bin/bash
+sudo service rabbitmq-server stop
+
+rabbit_app=`ps -ef | grep "rabbitmq-server" | grep -v grep | grep -v bash | awk '{print $2}'`
+sudo kill -9 ${rabbit_app}
+erlang_app=`ps -ef | grep "rabbitmq" | grep -v grep | grep "erlang" | awk '{print $2}'`
+for i in `echo ${erlang_app}`; do
+  sudo kill -9 $i
+done
+

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+bamboo_version=$1
+
+#Check the bamboo version.
+[[ `echo "$bamboo_version" | grep -oP "v[0-9]+\.[0-9]+\.[0-9]+"` == "$bamboo_version" ]] && { 
+  [[ "$bamboo_version" != '' ]] && { 
+    echo "Building $bamboo_version"
+  }
+} || { 
+  echo "Error: The version you've chosen (${bamboo_version}) is not in the correct version format (v0.0.0)"
+  exit 1
+}
+

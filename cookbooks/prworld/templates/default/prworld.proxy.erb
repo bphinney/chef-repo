@@ -1,0 +1,28 @@
+ProxyRequests             Off
+ProxyPreserveHost         On
+
+<Proxy balancer://prworld>
+
+    DirectoryIndex index.html
+
+    <% @prworldworkers.each do |a| -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 route=<%= a['ipaddress'] %>
+    <% end -%>
+
+</Proxy>
+
+<Location ~ "^/(html|admin|c)(.*)">
+    ProxyPassMatch         balancer://prworld
+    AllowOverride AuthConfig Limit
+    Include conf.d/.dotcmsaccess
+</Location>
+
+<Location ~ "^/(?!(<%= node['prworld']['path_exclude_list'] %>)(.*))">
+    # Uncomment this to allow CORS for resources on pardot
+    #Header always set Access-Control-Allow-Origin "go.pardot.com"
+    #Header always set Access-Control-Allow-Methods "GET"
+    ProxyPassMatch          balancer://prworld
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+</Location>
+

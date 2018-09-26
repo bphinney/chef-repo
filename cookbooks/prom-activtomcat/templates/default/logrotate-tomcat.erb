@@ -1,0 +1,33 @@
+/opt/tomcat/logs/catalina.out {
+  daily
+  rotate 2
+  size 10M
+  dateext
+  maxage 5
+  create 644 tomcat tomcat
+  missingok
+  notifempty
+  copytruncate
+}
+<%= node['af']['foundationmaint_log'] %> {
+  daily
+  rotate 2
+  size 10M
+  dateext
+  maxage 5
+  create 644 tomcat tomcat
+  missingok
+  notifempty
+  copytruncate
+}
+<%= node['af']['foundationmaint_err'] %> {
+  daily
+  rotate 2
+  size 10M
+  dateext
+  maxage 5
+  create 644 tomcat tomcat
+  missingok
+  notifempty
+  copytruncate
+}

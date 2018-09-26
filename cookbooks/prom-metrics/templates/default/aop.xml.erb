@@ -1,0 +1,27 @@
+<!DOCTYPE aspectj PUBLIC
+    "-//AspectJ//DTD//EN" "http://www.eclipse.org/aspectj/dtd/aspectj.dtd">
+<aspectj>
+<% if node['stagemonitor']['logging_active'] == "true" -%>
+    <weaver options=" -showWeaveInfo -verbose -Xlint:ignore -Xset:weaveJavaxPackages=true">
+<% else -%>
+    <weaver options=" -Xlint:ignore -Xset:weaveJavaxPackages=true">
+<% end -%>
+        <!-- exclude generated proxies -->
+        <exclude within="*..*CGLIB*" />
+        <exclude within="*..*$$*" />
+        <exclude within="*..access$*" />
+        <exclude within="com.sun.proxy..*" />
+        <exclude within="com.aspose.pdf..*"/>
+        <exclude within="sun.reflect.misc..*"/>
+    </weaver>
+    <aspects>
+        <concrete-aspect name="profiler"
+                         extends="org.stagemonitor.requestmonitor.profiler.ProfilingAspect">
+            <pointcut name="methodsToProfile"
+                      expression="within(promethean.hibernate.Tenant.*)
+                                  AND within(promethean.model.*)"/>
+        </concrete-aspect>
+        <aspect name="org.stagemonitor.jdbc.ConnectionMonitorAspect"/>
+    </aspects>
+</aspectj>
+

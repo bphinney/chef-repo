@@ -1,0 +1,66 @@
+{
+  "servers" : [ {
+    "port" : "8090",
+    "host" : "<%= node["hostname"] %>",
+    "username" : "monitorRole",
+    "password" : "tomcat",
+    "queries" : [ {
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.GraphiteWriter",
+        "settings" : {
+          "port" : 2003,
+          "host" : "<%= @smserverip %>"
+        }
+      } ],
+      "obj" : "java.lang:type=OperatingSystem",
+      "resultAlias": "os",
+      "attr" : [ "SystemCpuLoad", "ProcessCpuLoad", "SystemLoadAverage", "ProcessCpuTime", "FreePhysicalMemorySize", "TotalPhysicalMemorySize", "FreeSwapSpaceSize", "OpenFileDescriptorCount" ]
+    }, {
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.GraphiteWriter",
+        "settings" : {
+          "port" : 2003,
+          "host" : "<%= @smserverip %>"
+        }
+      } ],
+      "obj" : "java.lang:type=Memory",
+      "resultAlias": "heap",
+      "attr" : [ "HeapMemoryUsage", "NonHeapMemoryUsage" ]
+    }, {
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.GraphiteWriter",
+        "settings" : {
+          "port" : 2003,
+          "host" : "<%= @smserverip %>"
+        }
+      } ],
+      "obj" : "Catalina:type=ThreadPool,name=*",
+      "resultAlias": "threadpool",
+      "attr" : [ "connectionCount", "currentThreadCount", "currentThreadsBusy" ]
+    }, {
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.GraphiteWriter",
+        "settings" : {
+          "port" : 2003,
+          "host" : "<%= @smserverip %>"
+        }
+      } ],
+      "obj" : "Catalina:type=Connector,name=*",
+      "resultAlias": "connectors",
+      "attr" : [ "connectionCount", "currentThreadCount", "currentThreadsBusy" ]
+    }, {
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.GraphiteWriter",
+        "settings" : {
+          "port" : 2003,
+          "host" : "<%= @smserverip %>",
+          "typeNames" : [ "name" ]
+        }
+      } ],
+      "obj" : "java.lang:type=GarbageCollector,name=*",
+      "resultAlias": "gc",
+      "attr" : [ "CollectionCount", "CollectionTime" ]
+    } ],
+    "numQueryThreads" : 2
+  } ]
+}

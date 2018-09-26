@@ -1,0 +1,16 @@
+#!/bin/bash
+[[ `ps aux | grep [r]sync | grep s3backup` == "" ]] && {
+  for i in `/usr/sbin/gluster volume info | grep \`hostname\` | cut -f3 -d":"`; do
+    mount /s3backup
+    export d=`echo $i | cut -f3 -d"/"`
+    mkdir -p /s3backup/$d/
+    find $i/ -path "$i/.glusterfs" -prune -o -mtime -10 -exec /bin/cp {} /s3backup/$d/ \; >> /var/log/s3_backup.log 2>&1
+    #rsync -rv --ignore-errors --size-only --inplace --exclude=".gluster*" $i/ /s3backup/$d/
+    #rm -rf /export/<%= @bucketName %>/$d
+    umount /s3backup
+  done
+  echo "S3 backups complete on `date`"
+  #s3fs <%= @bucketName %> /s3backup -o rw,nodev,allow_other,nonempty,suid
+} || {
+  echo "S3 backups from previous week still running.  Aborted for the time being."
+}

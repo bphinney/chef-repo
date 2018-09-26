@@ -1,0 +1,46 @@
+ProxyRequests             Off
+ProxyPreserveHost         On
+ProxyTimeout              <%= node['apache']['proxy_timeout'] %>
+
+<Proxy balancer://activfoundation>
+
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+    DirectoryIndex index.html
+
+<% if node.chef_environment.include?("local") -%>
+    <% if node['apache']['aflbmethod'] == "ajp" -%>
+    BalancerMember ajp://127.0.0.1:8009 route=127.0.0.1
+    <% else -%>
+    BalancerMember http://127.0.0.1:8080 route=127.0.0.1
+    <% end -%>
+<% elsif node['tomcat']['sessions'] == "stateful" -%>
+  <% @activfoundworkers.each do |a| -%>
+    <% if node['apache']['aflbmethod'] == "ajp" -%>
+    BalancerMember ajp://<%= a['ipaddress'] %>:8009 route=<%= a['ipaddress'] %>
+    <% else -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 route=<%= a['ipaddress'] %> retry=<%= node['apache']['proxy_retry'] %>
+    <% end -%>
+  <% end -%>
+<% elsif node['tomcat']['sessions'] == "stateless" -%>
+  <% @activfoundworkers.each do |a| -%>
+    <% if node['apache']['aflbmethod'] == "ajp" -%>
+    BalancerMember ajp://<%= a['ipaddress'] %>:8009
+    <% else -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 retry=<%= node['apache']['proxy_retry'] %>
+    <% end -%>
+  <% end -%>
+<% end -%>
+
+</Proxy>
+
+<Location /activfoundation>
+
+<% unless node['tomcat']['sessions'] == "stateless" -%>
+ProxyPass               balancer://activfoundation/activfoundation stickysession=JSESSIONID|jsessionid failonstatus=<%= node['apache']['proxy_error'] %>
+<% else -%>
+ProxyPass               balancer://activfoundation/activfoundation failonstatus=<%= node['apache']['proxy_error'] %>
+<% end -%>
+Include conf.d/.htaccess
+</Location>

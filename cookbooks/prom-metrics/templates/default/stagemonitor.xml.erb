@@ -1,0 +1,43 @@
+<% if node['stagemonitor']['version'] == "0.14.1-0" %>
+<?xml version="1.0" encoding="UTF-8"?>
+    <% if @reloadable == "true" -%>
+<Context reloadable="true">
+    <% else %>
+<Context>
+    <% end %>
+    <Resources>
+        <JarResources className="org.apache.catalina.webresources.DirResourceSet"
+                      base="/opt/stagemonitor/lib"
+                      webAppMount="/WEB-INF/lib"/>
+        <PreResources className="org.apache.catalina.webresources.DirResourceSet"
+                      base="/opt/stagemonitor/lib" 
+                      webAppMount="/WEB-INF/classes"/>
+    </Resources>
+</Context>
+<% else %>
+    <% if @client_install == "true" %>
+<?xml version="1.0" encoding="UTF-8"?>
+        <% if @reloadable == "true" -%>
+<Context reloadable="true">
+        <% else %>
+<Context>
+        <% end %>
+    <Loader className="org.apache.catalina.loader.VirtualWebappLoader"
+            virtualClasspath="/opt/stagemonitor-<%= @application -%>/lib/*.jar;
+           /opt/stagemonitor-<%= @application -%>/lib"
+            searchVirtualFirst="true"/>
+</Context>
+    <% else %>
+<?xml version="1.0" encoding="UTF-8"?>
+        <% if @reloadable == "true" -%>
+<Context reloadable="true">
+        <% else %>
+<Context>
+        <% end %>
+    <Loader className="org.apache.catalina.loader.VirtualWebappLoader"
+            virtualClasspath="/opt/stagemonitor/lib/*.jar;
+           /opt/stagemonitor/lib"
+            searchVirtualFirst="true"/>
+</Context>
+    <% end %>
+<% end %>

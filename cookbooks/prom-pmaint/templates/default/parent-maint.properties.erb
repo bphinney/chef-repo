@@ -1,0 +1,59 @@
+application.jmx.name=parentService
+
+spring.datasource.parentService.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.parentService.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['parent-service']['database'] %>?autoReconnect=true
+spring.datasource.parentService.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.parentService.username=<%= node['parent-service']['username'] %>
+spring.datasource.parentService.password=<%= node['parent-service']['password'] %>
+spring.datasource.parentService.initialSize=5
+spring.datasource.parentService.minIdle=5
+spring.datasource.parentService.maxIdle=5
+spring.datasource.parentService.maxActive=10
+spring.datasource.parentService.maxWait=30000
+spring.datasource.parentService.testOnBorrow=true
+spring.datasource.parentService.validationQuery=SELECT 1
+spring.datasource.parentService.defaultCatalog=<%= node['parent-service']['database'] %>
+spring.datasource.parentService.removeAbandoned=true
+spring.datasource.parentService.logAbandoned=true
+
+## Database Liquibase Information
+## Liquibase Config section
+liquibase.parentService.driver=com.mysql.jdbc.Driver
+liquibase.parentService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['parent-service']['database'] %>?autoReconnect=true
+liquibase.parentService.defaultSchema=<%= node['parent-service']['database'] %>
+liquibase.parentService.username=<%= node['parent-service']['username'] %>
+liquibase.parentService.password=<%= node['parent-service']['password']  %>
+liquibase.threads=5
+liquibase.enabled=false
+
+# New Properties for Elasticsearch REST IN-1054
+<% unless node.chef_environment.include?("local") -%>
+elasticsearch.rest.url=<%= node['elasticsearch']['rest_url'] %>
+<% else -%>
+elasticsearch.rest.url=http://127.0.0.1:9200
+<% end -%>
+elasticsearch.rest.maxTotalConnection=<%= node['elasticsearch']['rest_max_conn'] %>
+elasticsearch.rest.maxTotalConnectionPerHost=<%= node['elasticsearch']['rest_max_perhost'] %>
+elasticsearch.tenant.reindex.threads=3
+elasticsearch.drive.types.reindex.threads=1
+elasticsearch.drive.reindex.threads=2
+elasticsearch.drive.reindex.bulk.size=5000
+elasticsearch.readTimeout=30000
+elasticsearch.connectionTimeout=10000
+elasticsearch.enable=true
+
+# RabbitMQ Properties IN-1155
+rabbitmq.host=<%= @rabbitmqserver %>
+rabbitmq.port=<%= @rabbitmqport %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.exchange=classflow.topic
+
+# New Properties for redis management from Elasticache service
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+
+# IN-1392 Property to identify environment for lock files
+environment.name=<%= node.chef_environment %>
+

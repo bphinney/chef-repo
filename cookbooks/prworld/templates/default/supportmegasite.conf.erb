@@ -1,0 +1,69 @@
+#NameVirtualHost <%= node["ipaddress"] %>:80
+################################################################
+## Default Tenant Virtual Host Section                         #
+################################################################
+
+<VirtualHost <%= node["ipaddress"] %>:80>
+
+    DocumentRoot /opt/www/supportmega
+<% unless node['supportmega']['supportmegaservername'].nil? || node['supportmega']['supportmegaservername'].empty? -%>
+    ServerName <%= node['supportmega']["supportmegaservername"] %>
+<% else -%>
+    ServerName <%= node['apachservername'] %>
+<% end -%>
+<% unless node['supportmega']['supportmega-maintbypass'].nil? || node['supportmega']['supportmega-maintbypass'].empty? -%>
+    ServerAlias node['supportmega']['supportmega-maintbypass']
+<% end -%>
+<% unless node['supportmega']['supportmegaalias'].nil? || node['supportmega']['supportmegaalias'].empty? -%>
+    ServerAlias <%= node['supportmega']['supportmegaalias'] %>
+<% end -%>
+
+    CustomLog logs/supportmega_access.log combined
+    ErrorLog logs/supportmega_error.log
+
+<% if node['prworld']['prmaintenance'] == "true" && `rpm -qa | grep prmaintenance` -%>
+    Include conf.d/prmaintenance.redirect
+<% end -%>
+
+    RewriteEngine On
+<% if node['supportmega']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !(/status|/connectiontest) https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+# Adding a block for invalid URL currently hitting production.
+    RewriteCond %{QUERY_STRING} ^.*(error=invalid_request|error=access_denied).* [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+<% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+  <% if node['supportmega']['supportmegaservername'].nil? || node['supportmega']['supportmegaservername'].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['supportmega']['supportmegaservername'] %>
+  <% else -%>
+    AuthDigestDomain /opt/www/html https://<%= node['apacheserver'] %>
+  <% end -%>
+<% end -%>
+
+<Directory "/opt/www/supportmega">
+    AllowOverride All
+    DirectoryIndex index.html
+    Include conf.d/.htaccess
+<% if node['supportmega']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+  <% if node['supportmega']["supportmegaservername"].nil? || node['supportmega']["supportmegaservername"].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['supportmega']["supportmegaservername"] %>
+  <% else -%>
+    AuthDigestDomain /opt/www/html https://<%= node['supportmega']["supportmegaservername"] %>
+  <% end -%>
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+</Directory>
+
+<% if File.exists?("/etc/httpd/conf.d/prworld.proxy") -%>
+    Include conf.d/prworld.proxy
+<% end -%>
+
+</VirtualHost>

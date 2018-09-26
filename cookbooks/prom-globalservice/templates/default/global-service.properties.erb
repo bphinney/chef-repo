@@ -1,0 +1,112 @@
+###################################
+# notification-service properties #
+###################################
+
+spring.datasource.notificationService.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.notificationService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['notification-service']['database'] %>?autoReconnect=true
+spring.datasource.notificationService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.notificationService.username=<%= node['notification-service']['username'] %>
+spring.datasource.notificationService.password=<%= node['notification-service']['password'] %>
+spring.datasource.notificationService.initialSize=5
+spring.datasource.notificationService.minIdle=5
+spring.datasource.notificationService.maxIdle=5
+spring.datasource.notificationService.maxActive=10
+spring.datasource.notificationService.maxWait=30000
+spring.datasource.notificationService.testOnBorrow=true
+spring.datasource.notificationService.validationQuery=SELECT 1
+spring.datasource.notificationService.defaultCatalog=<%= node['notification-service']['database'] %>
+
+liquibase.notificationService.driver=com.mysql.jdbc.Driver
+liquibase.notificationService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['notification-service']['database'] %>?autoReconnect=true
+liquibase.notificationService.defaultSchema=<%= node['notification-service']['database'] %>
+liquibase.notificationService.username=<%= node['notification-service']['username'] %>
+liquibase.notificationService.password=<%= node['notification-service']['password'] %>
+
+gcm.api.key=AIzaSyCi4ay6Zbbo3bwuRF-9QrOQeAmVtyVHXgQ
+gcm.senderid=1062981820515
+
+# RabbitMQ Section for notification-service
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.enable=true
+<% end -%>
+rabbitmq.addresses=<%= @rmqaddresses %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.exchange=classflow.topic
+rabbitmq.classflow.notification.consumers=2
+# IN-1608
+rabbitmq.classflow.storeservice.consumers=<%= node['rabbitmq']['storeservice']['consumers'] %>
+rabbitmq.classflow.paypal.delayedpayment.consumers=<%= node['rabbitmq']['paypal']['delayedpayment']['consumers'] %>
+
+
+############################
+# store-service properties #
+############################
+
+application.jmx.name=storeService
+#datasource
+spring.datasource.storeService.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.storeService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['store-service']['database'] %>?autoReconnect=true
+spring.datasource.storeService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.storeService.username=<%= node['store-service']['username']%>
+spring.datasource.storeService.password=<%= node['store-service']['password']%>
+spring.datasource.storeService.initialSize=5
+spring.datasource.storeService.minIdle=5
+spring.datasource.storeService.maxIdle=5
+spring.datasource.storeService.maxActive=10
+spring.datasource.storeService.maxWait=30000
+spring.datasource.storeService.testOnBorrow=true
+spring.datasource.storeService.validationQuery=SELECT 1
+spring.datasource.storeService.defaultCatalog=<%= node['store-service']['database'] %>
+
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+
+liquibase.storeService.driver=com.mysql.jdbc.Driver
+liquibase.storeService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['store-service']['database'] %>?autoReconnect=true
+liquibase.storeService.defaultSchema=<%= node['store-service']['database'] %>
+liquibase.storeService.username=<%= node['store-service']['username'] %>
+liquibase.storeService.password=<%= node['store-service']['password'] %>
+
+# Used in RestTemplate spring config
+http.socket.user.timeout.default=5000
+http.connect.user.timeout.default=200
+
+environment.name=<%= node.chef_environment %>
+
+# smtp config - IN-1480
+smtp.host=<%= @emailserver %>
+smtp.port=587
+smtp.ssl=false
+smtp.user=<%= @emailuser %>
+smtp.password=<%= @emailpass %>
+smtp.fromaddress=<%= node['smtp']["smtp_from_address"] %>
+mail.protocol=smtp
+
+# IN-1588
+paypal.service.api=<%= node['paypal']['api'] %>
+paypal.transaction.url.template=<%= node['paypal']['transurl'] %>
+paypal.service.user.id=<%= node['paypal']['serviceuser'] %>
+paypal.service.user.password=<%= node['paypal']['servicepass'] %>
+paypal.service.user.signature=<%= node['paypal']['serviceusersig'] %>
+paypal.service.app.id=<%= node['paypal']['serviceappid'] %>
+paypal.promethean.currency.accounts={ "<%= node['paypal']['currency'] %>":"<%= node['paypal']['curracct'] %>" }
+
+# IN-1642 Properties for api basic auth
+communication.internal.api.username=<%= node['af']['intapiuser'] %>
+communication.internal.api.password=<%= node['af']['intapipass'] %>
+
+# IN-1671 Properties for mobile
+#for ANDROID
+gcm.api.key=<%= node['af']['gcmapikey'] %>
+gcm.senderid=<%= node['af']['gcmsenderid'] %>
+
+#for IOS
+mobile.connect.bundle.id=com.prometheanworld.mobile.connect
+apns.cert.location=/opt/tomcat/security/<%= node['af']['apnscert'] %>
+apns.cert.password=<%= node['af']['apnspass'] %>
+apns.sandbox=true
+apns.thread.count=15

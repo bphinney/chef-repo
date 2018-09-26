@@ -1,0 +1,14 @@
+$umask 0000
+$ModLoad imudp
+$UDPServerAddress 127.0.0.1
+$UDPServerRun 514
+$template Haproxy, "%msg%\n"
+$FileOwner haproxy
+$FileGroup haproxy
+$FileCreateMode 0644
+if ($programname == 'haproxy' and $syslogseverity-text == 'info') then -/var/log/haproxy.log;Haproxy
+if ($programname == 'haproxy' and $syslogseverity-text == 'notice') then -/var/log/haproxy-notice.log;Haproxy
+local2.* /var/log/haproxy.log
+local1.* /var/log/haproxy.log
+local0.* /var/log/haproxy.log
+& ~

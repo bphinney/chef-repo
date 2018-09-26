@@ -1,0 +1,35 @@
+ProxyRequests             Off
+ProxyPreserveHost         On
+ProxyTimeout              <%= node['apache']['proxy_timeout'] %>
+
+<Proxy balancer://foundation-management>
+
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+    DirectoryIndex index.html
+
+<% if node.chef_environment.include?("local") -%>
+    BalancerMember http://127.0.0.1:8080 route=127.0.0.1
+<% elsif node['tomcat']['sessions'] == "stateful" -%>
+  <% @afmanagerworkers.each do |a| -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 route=<%= a['ipaddress'] %> retry=<%= node['apache']['proxy_retry'] %>
+  <% end -%>
+<% elsif node['tomcat']['sessions'] == "stateless" -%>
+  <% @afmanagerworkers.each do |a| -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 retry=<%= node['apache']['proxy_retry'] %>
+  <% end -%>
+<% end -%>
+
+</Proxy>
+
+<Location /foundation-management>
+
+<% unless node['tomcat']['sessions'] == "stateless" -%>
+ProxyPass               balancer://foundation-management/foundation-management stickysession=JSESSIONID|jsessionid failonstatus=<%= node['apache']['proxy_error'] %>
+<% else -%>
+ProxyPass               balancer://foundation-management/foundation-management failonstatus=<%= node['apache']['proxy_error'] %>
+<% end -%>
+
+</Location>
+

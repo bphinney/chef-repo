@@ -1,0 +1,96 @@
+<% @prworldtenants.each do |tenant| -%>
+<% tenant.each do |k,v| -%>
+<% unless k['servername'].nil? || k['servername'].empty? -%>
+<VirtualHost <%= node["ipaddress"] %>:80>
+
+    DocumentRoot /opt/www/prworld
+  <% unless k['servername'].nil? || k['servername'].empty? -%>
+    ServerName <%= k['servername'] %>
+    ServerAlias www.<%= k['servername'] %>
+      <% unless k['serveralias'].nil? || k['serveralias'].empty? -%>
+    ServerAlias <%= k['serveralias'] %>
+      <% end -%>
+  <% else -%>
+    ServerName <%= node['apacheservername'] %>
+    ServerAlias www.<%= node['apacheservername'] %>
+  <% end -%>
+
+    CustomLog logs/<%= k['servername'] %>_access.log combined
+    ErrorLog logs/<%= k['servername'] %>_error.log
+
+  <% if node['prworld']['prmaintenance'] == "true" && `rpm -qa | grep prmaintenance` -%>
+    Include conf.d/prmaintenance.redirect
+  <% end -%>
+
+  <% if k['status'] == "prmaintenance" -%>
+    Include conf.d/prmaintenance.redirect
+  <% end -%>
+
+    RewriteEngine On
+# Block Akamai requests
+    RewriteCond %{HTTP_USER_AGENT} Akamai_Site_Analyzer [NC]
+    RewriteRule !^robots\.txt$ - [F]
+
+  <% if k['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !(/status) https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+  <% end -%>
+
+  <% unless k['rewrite'].nil? -%>
+    <% k['rewrite'].each do |serv,targ| -%>
+    RewriteCond "%{HTTP_HOST}" "<%= serv %>" [NC]
+      <% if k['sslRedirect'] == "true" -%>
+    RewriteRule "^/?(.*)" "https://<%= k['servername'] %>/<%= targ %>"
+      <% else -%>
+    RewriteRule "^/?(.*)" "http://<%= k['servername'] %>/<%= targ %>"
+      <% end -%>
+    <% end -%>
+  <% end -%>
+
+  <% unless k['rewritebase'].nil? -%>
+    <% k['rewritebase'].each do |serv,targ| -%>
+    #RewriteCond "%{HTTP_HOST}" !^"<%= targ %>$"
+    RewriteCond %{HTTP_HOST} ^<%= serv %>$ 
+      <% if k['sslRedirect'] == "true" -%>
+    RewriteRule ^(.*)$ https://<%= targ %>$1 [R=301,L]
+      <% else -%>
+    RewriteRule ^(.*)$ http://<%= targ %>$1 [R=301,L]
+      <% end -%>
+    <% end -%>
+  <% end -%>
+
+  <% if k['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+    <% if k['servername'].nil? || k['servername'].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['apacheserver'] %>
+    <% else -%>
+    AuthDigestDomain /opt/www/html https://<%= k['servername'] %>
+    <% end -%>
+  <% end -%>
+<Directory "/opt/www/prworld">
+    AllowOverride All
+    DirectoryIndex index.html
+    Include conf.d/.htaccess
+  <% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+    <% if k['servername'].nil? || k['servername'].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node["apacheservername"] %>
+    <% else -%>
+    AuthDigestDomain /opt/www/html https://<%= k['servername'] %>
+    <% end -%>
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+  <% end -%>
+</Directory>
+
+  <% if File.exists?("/etc/httpd/conf.d/prworld.proxy") -%>
+    Include conf.d/prworld.proxy
+  <% end -%>
+
+</VirtualHost>
+<% end -%>
+<% end -%>
+<% end -%>

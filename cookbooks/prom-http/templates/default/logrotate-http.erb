@@ -1,0 +1,12 @@
+/var/log/httpd/*log {
+    missingok
+    notifempty
+    sharedscripts
+    delaycompress
+    rotate 5
+    size=500M
+    postrotate
+        /sbin/service httpd reload > /dev/null 2>/dev/null || true
+    endscript
+}
+

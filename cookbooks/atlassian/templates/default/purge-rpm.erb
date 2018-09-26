@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#echo "don't use this"
+#exit
+
+purge_dir="<%= node['yum_testing'] %>"
+archive_dir="<%= node['yum_archive'] %>"
+# purpose: keep the five newest builds for each app and each major version
+#
+#########################################
+### CHANGELOG:
+#########################################
+
+set -e
+#set -x
+
+######################
+#   Cleanup
+if [ ! -d ${archive_dir} ]; then
+   mkdir -p ${archive_dir}
+fi
+
+if [ -e /tmp/target_list ]; then
+   rm /tmp/target_list
+fi
+
+if [ -e /tmp/file_list ]; then
+   rm /tmp/file_list
+fi
+#######################
+
+cd $purge_dir
+
+# Get a list of all the APPNAME_MAJOR_VERSION names for the files
+ls -l *rpm | awk {'print $9'} | sort | awk -F- {'print $1 FS $2'} | uniq > /tmp/file_list
+
+# Get a list of the files targeted for deletion (not the newest 5)
+for apps in `cat /tmp/file_list` ;
+   do 
+      ls -lt $apps* | sed -n -e '<%= node['archive_retention'] %>,$p' | awk '{ print $9 }' >> /tmp/target_list ;
+done
+
+# Act upon the targets
+for target in `cat /tmp/target_list` ;
+   do
+      echo -e "moving $target \n" ;
+      mv $target ${archive_dir}/. ;
+      #echo rm -f $target ;
+   done
+
+exit
+

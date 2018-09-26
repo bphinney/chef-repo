@@ -1,0 +1,76 @@
+    #IN-1267 Rewrites for Marketing
+    RewriteCond %{REQUEST_URI} ^/register(.*)$
+    RewriteRule ^/register(.*)$ /classflow/#/register [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/create(.*)$
+    RewriteRule ^/create(.*)$ /classflow/#/learn-more [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/contact-us(.*)$
+    RewriteRule ^/contact-us(.*)$ <%= node['af']['cms_url'] %>/register/administrator-persona.html [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/register/teacher-persona.html$
+    RewriteRule ^/register/teacher-persona.html$ /classflow/#/register [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/register/administrator-persona.html$
+    RewriteRule ^/register/administrator-persona.html$ /classflow/#/plans [L,R=301]
+    # Rewrites for legal IN-1367
+    RewriteCond %{REQUEST_URI} ^/privacy-policy(.*)
+    RewriteRule ^/privacy-policy(.*)  <%= node['af']['cms_url'] %>/about/privacy-policy.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/(cookies-policy.*)
+    RewriteRule ^/cookies-policy(.*)  <%= node['af']['cms_url'] %>/about/cookies-policy.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/terms-of-service(.*)
+    RewriteRule ^/terms-of-service(.*)  <%= node['af']['cms_url'] %>/about/terms-of-service.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/schools-privacy-policy(.*)
+    RewriteRule ^/schools-privacy-policy(.*)  <%= node['af']['cms_url'] %>/about/privacy-policy.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/sampleparentalconsent(.*)
+    RewriteRule ^/sampleparentalconsent(.*)  <%= node['af']['cms_url'] %>/about/sampleparentalconsent.html [R=301,L]
+    # rewrites for IN-1371
+    RewriteCond %{REQUEST_URI} ^/schools-cookies-policy
+    RewriteRule ^/schools-cookies-policy  <%= node['af']['cms_url'] %>/about/cookies-policy.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/subscription-agreement
+    RewriteRule ^/subscription-agreement  <%= node['af']['cms_url'] %>/about/subscription-agreement.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/services-agreement
+    RewriteRule ^/services-agreement  <%= node['af']['cms_url'] %>/about/services-agreement.html [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/acceptable-use-policy
+    RewriteRule ^/acceptable-use-policy  <%= node['af']['cms_url'] %>/about/acceptable-use-policy.html [R=301,L]
+
+    RewriteCond %{REQUEST_URI} ^/about/learn-more.html
+    RewriteRule ^/about/learn-more.html /classflow/#/learn-more [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/about/content/schools-cookie-policy.html
+    RewriteRule ^/about/content/schools-cookie-policy.html <%= node['af']['cms_url'] %>/about/schools-cookie-policy.html [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/about/content/schools-privacy-policy.html
+    RewriteRule ^/about/content/schools-privacy-policy.html <%= node['af']['cms_url'] %>/about/schools-privacy-policy.html [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/about/content/subscription-agreement.html
+    RewriteRule ^/about/content/subscription-agreement.html <%= node['af']['cms_url'] %>/about/subscription-agreement.html [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/about/content/services-agreement.html
+    RewriteRule ^/about/content/services-agreement.html <%= node['af']['cms_url'] %>/about/services-agreement.html [L,R=301]
+    # Catch all for everything else
+    RewriteCond %{REQUEST_URI} ^/about/(?!(content/(schools.*-policy|services-agreement|subscription-agreement)))(.*)
+    RewriteRule ^/about/(.*) /classflow [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/(.*/activinspire.*)
+    RewriteRule ^/(.*/activinspire.*) <%= node['af']['cms_url'] %>/$1 [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/(activinspire.*)
+    RewriteRule ^/(activinspire.*) <%= node['af']['cms_url'] %>/$1 [R=301,L]
+    RewriteCond %{REQUEST_URI} ^/sampleparentalconsent$
+    RewriteRule ^/sampleparentalconsent$ <%= node['af']['cms_url'] %>/about/sampleparentalconsent [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/desktop$
+    RewriteRule ^/desktop$ /#/cf-desktop [L,R=301]
+    RewriteCond %{REQUEST_URI} ^(?:[^/]+/)?activinspire-.*$
+    RewriteRule ^(?:[^/]+/)?activinspire-.*$  <%= node['af']['cms_url'] %>/$1 [R=301,L]
+    #IN-1385 Rewrite for Marketing
+    RewriteCond %{REQUEST_URI} ^/GESS_2016(.*)
+    RewriteRule ^/GESS_2016(.*)  https://classflow.com/classflow/#/register?utm_source=Conference&utm_medium=Event&utm_content=Register+for+free+ClassFlow+account&utm_campaign=2016+GESS [R=301,L,NE]
+    RewriteCond %{REQUEST_URI} ^/(SorteoPanel|sorteopanel)(.*)
+    RewriteRule ^/(SorteoPanel|sorteopanel)(.*)  https://classflow.com/classflow/#/register?utm_source=Advertisement&utm_medium=Print&utm_content=Register+for+free+ClassFlow+account&utm_campaign=2016+Spain+Lottery [R=301,L,NE]
+    RewriteCond %{REQUEST_URI} ^/community/index.html
+    RewriteRule ^/community/index.html$  https://support.classflow.com [R=301,L]
+
+    #IN-1352  Rewrite for Marketing
+    RewriteCond %{REQUEST_URI} ^/gb(.*)
+    RewriteRule ^/gb(.*) https://classflow.co.uk [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/de(.*)
+    RewriteRule ^/de(.*) /classflow [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/it(.*)
+    RewriteRule ^/it(.*) /classflow [L,R=301]
+    RewriteCond %{REQUEST_URI} ^/nl(.*)
+    RewriteRule ^/nl(.*) /classflow [L,R=301]
+
+    #IN-1396 Redirects for classflow.it
+    RewriteCond %{HTTP_HOST} ^(www\.)?classflow\.it [NC]
+    RewriteRule ^(.*)$ http://www1.prometheanplanet.com/it/server.php?show=nav.31196 [R=301,L]

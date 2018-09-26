@@ -1,0 +1,16 @@
+# Users list
+# 
+# The formatting for the users list is as follows:
+# username=<environments user is allowed to edit>,<execution codes of user-allowed scripts>,<last 8 characters of modifiable environment attributes>
+# 'all' can be used in either location to allow all.
+# Keep in mind the 'admin' user is special and will always have additional privileges, such as clearing log files.
+# Please follow the formatting of the default users list below:
+#
+# Please make no edits to this file as it is updated automatically by chef
+<% @users.each do |user| -%>
+  <% user_name = user['user'] -%>
+  <% user_env = user['environments'] -%>
+  <% user_actions = user['actions'] -%>
+  <% user_permissions = user['permissions'] -%>
+<%= user_name %>=<%= user_env %>, <%= user_actions %>, <%= user_permissions %>
+<% end -%>

@@ -1,0 +1,36 @@
+#!/bin/bash
+[[ `knife environment list | grep -o -m1 prod` == 'prod' ]] && {
+  echo "Lower Env Audit Disabled: Environments not linked."
+  exit 0
+}
+echo "Lower Env Audit: Started for server `hostname -i` on `date`" > /var/log/lowerenv_access.log
+export begintime=`date +%s`
+preplist=`knife node list | grep -v ubuntu`
+nlist=`for ip in $preplist; do ssh -o ConnectTimeOut=3 $ip [[ -f /etc/httpd/conf.d/.htaccess ]] \&\& \{ echo $ip\; \}; done`
+whitelisted=`knife data bag show apache whitelist | cut -c5- | head -n -1 | sort`
+for i in $whitelisted; do
+  export hbu='false'
+  for n in $nlist; do
+    [[ `ssh $n grep -h -o $i /var/log/httpd/modsec_audit* 2\>\&1 | head -1 | sort | uniq` == $i ]] && {
+      export hbu='true'
+    }
+  done
+  [[ $hbu == 'false' ]] && {
+    echo "Address $i has not been used in a while." >> /var/log/lowerenv_access.log
+  }
+done
+#rejectedlist=""
+#for ipn in $nlist; do
+#  raw=`ssh -o ConnectTimeOut=3 $ipn grep -B10 Forbidden /opt/var/log/httpd/modsec_audit* | grep X-Forwarded-For`
+#  rejected=`echo $raw | grep -oP "X-Forwarded-For:\ \K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | grep -v "209\.85\." | grep -v "66\.249\." | grep -v "72\.14\.199\." | grep -v "66\.102\.6\." | grep -v "64\.233\.172\."`
+#  rejectedlist=`echo $rejectedlist; echo $rejected`
+#done
+#for i in $whitelisted; do
+#  rejectedlist=`for r in $rejectedlist; do echo $r; done | grep -v $i`
+#done
+#echo "Hit count for 5 most recent rejections:" >> /var/log/lowerenv_access.log
+#for r in $rejectedlist; do echo $r; done | sort | uniq -c | sort -nr | head -5 >> /var/log/lowerenv_access.log
+echo "Lower Env Audit: Completed after $(( `date +%s` - $begintime )) seconds." >> /var/log/lowerenv_access.log
+version=`curl --silent --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -X GET -H 'Content-Type: application/json' https://wiki.prometheanjira.com/rest/api/content/50036808/history | grep -oP "\"number\":\K[0-9]+" | tail -1`
+html=`cat /var/log/lowerenv_access.log | paste -d# -s | sed 's/#/\<\/p\>\<p\>/g' | sort`
+curl --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -X PUT -H 'Content-Type: application/json' -d'{"id":"50036808","type":"page","title":"Lower Environment Access - Unused IPs","space":{"key":"OP"},"body":{"storage":{"value":"<p>'"$html"'</p>","representation":"storage"}},"version":{"number":'"$(( $version + 1 ))"'}}' https://wiki.prometheanjira.com/rest/api/content/50036808

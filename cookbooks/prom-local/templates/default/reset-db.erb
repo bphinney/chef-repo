@@ -1,0 +1,76 @@
+#!/bin/bash
+
+function drop_af_schemas(){
+  mysql -u root --password=root --host=<%= node['database']['dbservername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['database']['dbservername']%> -u root -e 'drop database if exists <%= node['af']['activfoundb']%>; drop database if exists <%= node['fconfig']['founconfigdb']%>;'
+  else
+    echo "Foundation Databases have been dropped."
+fi 
+}
+
+function drop_dw_schemas(){
+mysql -u root --password=root --host=<%= node['dwh']['servername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['dwh']['servername']%> -u root -e 'drop database if exists <%= node['dwh']['anaschemaname']%>; drop database if exists <%= node['dwh']['dwhschemaname']%>;'
+  else
+    echo "Datawarehouse Databases have been dropped."
+fi 
+}
+
+function drop_auth_schemas(){
+mysql -u root --password=root --host=<%= node['authserver']['servername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['authserver']['servername']%> -u root -e 'drop database if exists <%= node['authserver']['database']%>;'
+  else
+    echo "Authserver Database has been dropped."
+fi 
+}
+
+function drop_parent_schemas(){
+mysql -u root --password=root --host=<%= node['database']['servername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['database']['servername']%> -u root -e 'drop database if exists <%= node['parent-service']['database']%>;'
+  else
+    echo "Parent-service Database has been dropped."
+fi
+}
+
+function drop_notification_schemas(){
+mysql -u root --password=root --host=<%= node['database']['servername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['database']['servername']%> -u root -e 'drop database if exists <%= node['notification-service']['database']%>;'
+  else
+    echo "Notification-service Database has been dropped."
+fi
+}
+
+function drop_store_schemas(){
+mysql -u root --password=root --host=<%= node['database']['servername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['database']['servername']%> -u root -e 'drop database if exists <%= node['store-service']['database']%>;'
+  else
+    echo "Store-service Database has been dropped."
+fi
+}
+
+function call_setup_db(){
+  /usr/bin/db-setup
+}
+
+
+##########################
+## Main Execution Order ##
+##########################
+
+drop_af_schemas
+drop_dw_schemas
+drop_auth_schemas
+drop_parent_schemas
+drop_notification_schemas
+drop_store_schemas
+<% if @reset == "true" %>
+call_setup_db
+<% end %>
+
+

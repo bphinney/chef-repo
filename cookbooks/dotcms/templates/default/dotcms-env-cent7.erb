@@ -1,0 +1,5 @@
+<% if node['java']['jdk_version'] == '8' -%>
+BINPATH=JAVA_HOME='/usr/lib/jvm/java-1.8.0' /opt/dotCMS/bin
+<% else -%>
+BINPATH=JAVA_HOME='/usr/lib/jvm/java-1.7.0' /opt/dotCMS/bin
+<% end -%>

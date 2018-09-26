@@ -1,0 +1,7 @@
+#!/bin/bash
+[[ "$1" != "WARNING" ]] || {
+  [[ "$2" != "HARD" ]] || {
+    /usr/bin/sudo service jasper restart
+  }
+}
+exit 0;

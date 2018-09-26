@@ -1,0 +1,19 @@
+#!/bin/sh
+# check_emailsrv plugin for nrpe usage
+
+initstatus=`service emailsrv status | cut -f4 -d' '`
+
+case $initstatus in
+  not)
+    echo "CRITICAL - Emailsrv is down!"
+    exit 2
+    ;;
+  running)
+    echo "OK - Emailsrv is running with pid `service emailsrv status | cut -f7 -d' '`"
+    exit 0
+    ;;
+  *)
+    echo "UNKNOWN - Unrecognized Response."
+    exit 3
+    ;;
+esac

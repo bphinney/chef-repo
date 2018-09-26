@@ -1,0 +1,12 @@
+# Graphite/Carbon services which runs on port 2003/2004 tcp/udp
+-A FWR -p tcp -m tcp --dport 2003 -j ACCEPT
+-A FWR -p tcp -m tcp --dport 2004 -j ACCEPT
+-A FWR -p udp -m udp --dport 2003 -j ACCEPT
+-A FWR -p udp -m udp --dport 2004 -j ACCEPT
+
+# Memcache service which runs on port 11211 tcp/udp
+-A FWR -p tcp -m tcp --dport 11211 -j ACCEPT
+-A FWR -p udp -m udp --dport 11211 -j ACCEPT
+
+# HTTPD service which runs on port <%= node.normal['graphite']['listen_port'] %> tcp
+-A FWR -p tcp -m tcp --dport <%= node.normal['graphite']['listen_port'] %> -j ACCEPT

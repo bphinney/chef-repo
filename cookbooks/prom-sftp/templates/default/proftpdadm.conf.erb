@@ -1,0 +1,31 @@
+#NameVirtualHost <%= node['ipaddress'] %>:80
+
+<% if File.exists?("/etc/httpd/conf.d/mod_security.load") -%>
+    Include conf.d/mod_security.load
+<% end -%>
+
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    DocumentRoot /opt/proftpd_admin_v1.2
+    <Directory /opt/proftpd_admin_v1.2>
+      AuthType Basic
+      AuthName "Promethean SFTP Admin"
+      AuthUserFile /opt/proftpd_admin_v1.2/.htpasswd
+      Require valid-user
+      Order allow,deny
+      Allow from all
+    </Directory>
+    ServerName <%= node['apache']["apacheservername"] %>
+<% unless node['apache']['apachealias'].nil? || node['apache']['apachealias'].empty? -%>
+    ServerAlias <%= node['apache']['apachealias'] %>
+<% end -%>
+
+    CustomLog logs/proftpd_admin_access.log combined
+    ErrorLog logs/proftpd_admin_error.log
+
+<% if File.exists?("/etc/httpd/conf.d/logs.conf") -%>
+Include conf.d/logs.conf
+<% end -%>
+
+</VirtualHost>
+

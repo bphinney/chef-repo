@@ -1,0 +1,45 @@
+application.jmx.name=foundationEtl
+
+## FoundationConfig
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+<% unless node['database']['rodbserver'].nil? || node['database']['rodbserver'].empty? -%>
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['rodbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+<% else -%>
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+<% end -%>
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=5
+spring.datasource.foundationConfig.maxIdle=5
+spring.datasource.foundationConfig.maxActive=10
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+
+spring.datasource.datawarehouseConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.datawarehouseConfig.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['dwhschemaname'] %>
+spring.datasource.datawarehouseConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.datawarehouseConfig.username=<%= node['dwh']['supusername'] %>
+spring.datasource.datawarehouseConfig.password=<%= node['dwh']['supuserpass'] %>
+spring.datasource.datawarehouseConfig.minIdle=5
+spring.datasource.datawarehouseConfig.maxIdle=5
+spring.datasource.datawarehouseConfig.maxActive=10
+spring.datasource.datawarehouseConfig.maxWait=30000
+spring.datasource.datawarehouseConfig.testOnBorrow=true
+spring.datasource.datawarehouseConfig.validationQuery=SELECT 1
+spring.datasource.datawarehouseConfig.defaultCatalog=<%= node['dwh']['dwhschemaname'] %>
+spring.datasource.datawarehouseConfig.removeAbandoned=true
+spring.datasource.datawarehouseConfig.logAbandoned=true
+
+liquibase.datawarehouse.driver=com.mysql.jdbc.Driver
+liquibase.datawarehouse.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['dwhschemaname'] %>
+liquibase.datawarehouse.defaultSchema=<%= node['dwh']['dwhschemaname'] %>
+liquibase.datawarehouse.username=<%= node['dwh']['supusername'] %>
+liquibase.datawarehouse.password=<%= node['dwh']['supuserpass'] %>
+
+etl.connector.service.cron=<%= node['af']['etl_cron'] %>

@@ -1,0 +1,10 @@
+# IN-327 - Instance Metrics
+default['collectd']['client_active'] = 'false'
+default['collectd']['metrics_active'] = 'false'
+default['collectd']['version'] = '0.0.0-1'
+default['collectd']['graphite_host'] = '127.0.0.1'
+default['collectd']['profiling_active'] = 'false'
+default['collectd']['elasticache_metrics'] = 'false'
+default['collectd']['logging_active'] = 'false'
+default['collectd']['version'] = '5.4.1-2.gf.el6'
+default['aws_elasticsearch']['aws_elastic_metrics'] = 'false'

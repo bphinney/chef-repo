@@ -1,0 +1,23 @@
+#!/bin/bash
+# audit_ip 
+# 
+# Used to identify and retrieve where in the
+# apache logs an IP address can be found.  Useful
+# when tracking down in what environment someone
+# is hitting htaccess-controlled services.
+# 
+# Usage:
+# /usr/local/bin/audit_ip 255.255.255.255
+# 
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 255.255.255.255"
+else
+  nlist=`knife node list | grep -v ubuntu`
+  for n in $nlist; do
+    [[ `ssh -o ConnectTimeOut=3 $n grep -m1 -h -o $1 /var/log/httpd/modsec_audit* 2\>\&1 | head -1` == $1 ]] && {
+      echo "ip $1 accessed server $n."
+    }
+  done
+  echo "------------------"
+  echo "ip audit complete."
+fi

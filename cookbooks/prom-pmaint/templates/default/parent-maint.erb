@@ -1,0 +1,4 @@
+#!/bin/bash
+cd /opt/tomcat/bin/pmaint
+jarfile=`ls -1 /opt/tomcat/bin/pmaint | grep "jar$"`
+su -c "java <%= node['af']['foundationmaint_opts'] %> -jar $jarfile $*" tomcat 2>&1 | tee <%= node['af']['parentmaint_log'] %>

@@ -1,0 +1,16 @@
+# Chef service init file
+# installed by chef run
+# Promethean Inc.
+# TQ 08.2015
+[Unit]
+Description=Chef Daemon Mode
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/chef-client -d $chef_options
+ExecStop=/usr/bin/kill -15 $Pid_File
+EnvironmentFile=/etc/sysconfig/chef-config
+PIDFile=/var/run/chef/client.pid
+
+[Install]
+WantedBy=multi-user.target

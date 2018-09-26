@@ -1,0 +1,219 @@
+#!/opt/chef/embedded/bin/ruby
+######################################################################
+# Promethean Aws Environment Security Management Tool               ##
+#                                                                   ##
+# Updates AWS Security Group IP Access Whitelisting for             ##
+# Amazon EC2 and RDS Platforms                                      ##
+#                                                                   ##
+# Copyright Promethean World Inc. 2015                              ##
+#                                                                   ##
+######################################################################
+
+require 'aws-sdk'  # v2 API Aws-SDK gem
+require 'resolv'
+
+#<% if @env_secrds == "true" then -%>
+###########################################
+# Amazon Aws RDS Security Group Functions #
+###########################################
+
+# Extracts a list of IPs from the provded RDS secgroup in Aws
+#def aws_rds_secgroup_list( secgroup )
+#  sec_list = []
+#  $rds.client.describe_db_security_groups.each do |sgroup|
+#    sgroup["db_security_groups"].each do |group|
+#      if group["db_security_group_name"] == secgroup
+#        group["ip_ranges"].each do |ips|
+#          sec_list << ips["cidrip"]
+#        end
+#      end
+#    end
+#  end
+#  return sec_list.sort.uniq
+#end
+
+# Adds CIDR-based IP range to the defined Aws RDS Security group.
+#def authorize_rds_ip( db_sec_group, ip_addr )
+#  $rds.client.authorize_db_security_group_ingress({
+#  db_security_group_name: db_sec_group,
+#  cidrip: "#{ip_addr}/32",
+#  })
+#end
+
+# Removes CIDR-based IP range to the defined Aws RDS Security group.
+#def revoke_rds_ip( db_sec_group, ip_addr )
+#  $rds.client.revoke_db_security_group_ingress({
+#  db_security_group_name: db_sec_group,
+#  cidrip: "#{ip_addr}/32",
+#  })
+#end
+
+#def rds_filter()
+  # Pull MySQL access whitelist from JIRA
+#  rds_ip_list = `curl --silent --user <%= node['atlassian']['wiki_user'] %>:<%= node['atlassian']['wiki_pass'] %> -G https://wiki.prometheanjira.com/display/OP/MySQL+Server+Direct+Access+List+-+Lower+Env+RDS`.gsub(/<\/?(span|label)>/, "").scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+
+  # Pull current Aws RDS whitelist
+#  rds_cur_list = "#{$rds.client.describe_db_security_groups.inspect}".scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+  
+#  rds_security_group = "mysql" # Currently only one RDS security group
+
+#  if rds_ip_list.count > 1 then
+#    ( rds_cur_list - rds_ip_list ).each do |iplist|
+#      if iplist != '0.0.0.0'
+#        puts "Revoking IP #{iplist} for RDS"
+#        revoke_rds_ip( rds_security_group, iplist )
+#        sleep(1)
+#      end
+#    end
+#    ( rds_ip_list - rds_cur_list ).each do |iplist|
+#      puts "Authorizing IP #{iplist} for RDS"
+#      authorize_rds_ip( rds_security_group, iplist )
+#      sleep(1)
+#    end
+#  end
+#end
+#<% end -%>
+
+###########################################
+# Amazon Aws Ec2 Security Group Functions #
+###########################################
+
+# Extracts a list of IPs from the provded security group in Aws
+def aws_secgroup_list( secgroup )
+  sec_list = []
+  filtered_group = $aws.describe_security_groups({
+    filters: [
+      {
+        name: "group-name",
+        values: [secgroup],
+      },
+    ],
+  })
+  filtered_group.each do |sgroup|
+    sgroup["security_groups"].each do |perms|
+      perms["ip_permissions"].each do |lists|
+       lists["ip_ranges"].each do |range|
+         # Remove IP range - assuming all whitelisted ips are /32.
+         sec_list << range["cidr_ip"].split("/")[0]
+       end
+      end
+    end
+  end
+  return sec_list.sort.uniq
+end
+
+# Adds CIDR-based IP range/ports to the defined Aws EC2 Security group.
+def authorize_security_group_access( sec_group_name, ip_addr, port )
+
+  sec_group_id = $aws.describe_security_groups({
+    filters: [
+        {
+          name: "group-name",
+          values: [sec_group_name],
+        },
+      ],
+    }).security_groups[0].group_id
+ 
+  $aws.authorize_security_group_ingress({
+    group_id: sec_group_id, # Must use Group Id for authorization
+    ip_permissions: [
+      {
+        ip_protocol: "tcp",
+        from_port: port,
+        to_port: port,
+        ip_ranges: [
+          {
+            cidr_ip: "#{ip_addr}/32",
+          },
+        ],
+      },
+    ],
+  })
+end
+
+# Adds CIDR-based IP range/ports to the defined Aws EC2 Security group.
+def revoke_security_group_access( sec_group_name, ip_addr, port )
+  sec_group_id = $aws.describe_security_groups({
+    filters: [
+        {
+          name: "group-name",
+          values: [sec_group_name],
+        },
+      ],
+    }).security_groups[0].group_id
+ 
+  $aws.revoke_security_group_ingress({
+    group_id: sec_group_id, # Must use Group Id for revoke
+    ip_permissions: [
+      {
+        ip_protocol: "tcp",
+        from_port: port,
+        to_port: port,
+        ip_ranges: [
+          {
+            cidr_ip: "#{ip_addr}/32",
+          },
+        ],
+      },
+    ],
+  })
+end
+
+# Accesses, filters, and updates Aws security group based on specified JIRA IP list resource.
+def aws_filter(groupname, listpage, portlist)
+  cur_list = aws_secgroup_list(groupname)
+  
+  wiki_curl = `curl --silent --user administrator:n3WP7om3th3an1 -G https://wiki.prometheanjira.com/display/OP/#{listpage}`.gsub(/<\/?(span|label)>/, "")
+
+  ddns_list = wiki_curl.scan(/DDNS:\K[a-z]+\.[a-z]+\.[a-z]+/).uniq
+  ip_list = wiki_curl.scan(/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/).uniq
+
+  ddns_list.each do |dns|
+    resolvedip = Resolv.getaddress(dns)
+    ip_list << resolvedip
+    puts "Resolved DDNS #{dns} to IP Address #{resolvedip}"
+  end
+
+  if ip_list.count > 1 then
+    ( cur_list - ip_list ).each do |iplist|
+      if iplist != '0.0.0.0'
+        portlist.each do |port|
+          puts "Revoking IP #{iplist} for port #{port} for EC2 security group #{groupname}"
+          revoke_security_group_access( groupname, iplist, port )
+          sleep(1)
+        end
+      end
+    end
+    ( ip_list - cur_list ).each do |iplist|
+       portlist.each do |port|
+         puts "Authorizing IP #{iplist} for port #{port} for EC2 security group #{groupname}"
+         authorize_security_group_access( groupname, iplist, port )
+         sleep(1)
+       end
+    end
+  end
+end
+
+$aws_ec2_region        = `curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document |grep region|awk -F: '{print $2}' | cut -d'"' -f 2`.strip!
+$aws_access_key_id     = "<%= @access_key_id %>"
+$aws_secret_access_key = "<%= @secret_access_key %>"
+
+# Aws SDK v2 Credentials
+Aws.config.update({
+  region: $aws_ec2_region,
+  credentials: Aws::Credentials.new($aws_access_key_id, $aws_secret_access_key),
+})
+
+# Filter and secure each defined Aws Security Group
+$aws = Aws::EC2::Client.new
+
+<% @env_secgroup.each do |secgrp,params| -%>
+aws_filter('<%= secgrp -%>','<%= params['list_page'] -%>',[ <%= params['port_list'] -%> ])
+<% end -%>
+
+#<% if @env_secrds == "true" then -%>
+# Filter and secure the defined Aws RDS Secutity Group
+#$rds = Aws::RDS::Resource.new
+
+#rds_filter()
+#<% end -%>

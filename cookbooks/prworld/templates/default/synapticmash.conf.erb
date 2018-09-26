@@ -1,0 +1,21 @@
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    DocumentRoot /opt/www/prworld
+    ServerName synapticmash.com
+
+    CustomLog logs/synapticmash_access.log combined
+    ErrorLog logs/synapticmash_error.log
+
+    RewriteEngine On
+    RewriteRule ^.*$ http://www.prometheanworld.com/ [L,R]
+
+    FileETag -INode +MTime +Size
+
+<Directory "/opt/www/prworld">
+    Options -Indexes
+    DirectoryIndex help-en-us.htm
+    Include conf.d/.htaccess
+</Directory>
+
+</VirtualHost>
+

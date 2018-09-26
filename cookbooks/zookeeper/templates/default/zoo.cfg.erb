@@ -1,0 +1,14 @@
+initLimit=10
+syncLimit=5
+clientPort=2181
+dataDir=/var/lib/zookeeper
+tickTime=2000
+autopurge.purgeInterval=6
+<% if node.chef_environment.include?("local") -%>
+server.1=127.0.0.1:2888:3888
+<% else -%>
+  <% @zknodes.each do |zknode| -%>
+  <% servername = zknode['hostname'].split("-") -%>
+server.<%= servername[1] %>=<%=zknode['ipaddress']%>:2888:3888
+  <% end -%>
+<% end -%>

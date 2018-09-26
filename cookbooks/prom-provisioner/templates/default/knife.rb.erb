@@ -1,0 +1,9 @@
+log_level        :info
+log_location     STDOUT
+node_name        'root'
+client_key       '/root/.chef/root.pem'
+chef_server_url  '<%= @chef_server_url -%>/organizations/promethean'
+cookbook_path    '/root/chef-repo/cookbooks'
+knife[:distro] = 'centos5-rpm'
+knife[:editor] = 'vim'
+ssl_verify_mode  :verify_none

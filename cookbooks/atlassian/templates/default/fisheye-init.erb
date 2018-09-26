@@ -1,0 +1,42 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: fisheye
+# Required-Start: $local_fs $network $remote_fs
+# Required-Stop: $local_fs $network $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop fisheye
+# Description: Fisheye is a code review and management platform, which is the program that 
+#              manages/views source code and allows for code reviews.
+### END INIT INFO
+# Fisheye Linux service controller script
+export JAVA_HOME="/usr/lib/jvm/java-1.7.0"
+export FISHEYE_INST="/opt/fisheye-data"
+export FISHEYE_USER="fisheye"
+
+cd "/opt/fisheye/bin"
+
+case "$1" in
+    start)
+        su -c "/opt/fisheye/bin/start.sh" fisheye
+        ;;
+    stop)
+        su -c "/opt/fisheye/bin/stop.sh" fisheye
+        ;;
+    restart)
+        su -c "/opt/fisheye/bin/stop.sh" fisheye
+        su -c "/opt/fisheye/bin/start.sh" fisheye
+        ;;
+    status)
+        pid_status=`ps -ef | grep java | grep fisheye | awk '{print $2}'`
+        if [ "$pid_status" != "" ]; then
+          echo "Fisheye is running with pid $pid_status."
+        else
+          echo "Fisheye is not running."
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac

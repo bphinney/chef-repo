@@ -1,0 +1,13 @@
+default['atlas_dbserver'] = 'atlassian.cum0ld45s8ef.us-east-1.rds.amazonaws.com:3306'
+default['stash_dbserver'] = 'atlassian.cum0ld45s8ef.us-east-1.rds.amazonaws.com:3306'
+default['confluence_buildnumber'] = '6213'
+default['confluence']['license'] = 'AAABUw0ODAoPeNptUMtqwzAQvOsrBL20BwfFxEkaEDSxTQjk1dhNofSyVTaNQJKNLKfN31e208eho L1oZnZm9iavkWZYUjam/dEkGk/CIY2TnIasH5F1rd/Qbo5PFdqKR4yRBCthZelkYXhcmKOq0Qikt xnaM9o76jm0Zb9OaFxojVZIUHQpBZoKSWwRGm0CDnljEbB7/4hf5UC4NWjk05OGA51WCrQkwnv0P CLPyJ2tsfvIHFiHlh9BNUs7cboCqTg06h606ofSFhrdCcF8FFYdeqLQJD2DqtsQV3m78Rowv5TYh og3q1W6ixfTJVEdtPelGlFIvI9xaMAXTz9LaS/fbYZBnwVsRDb2HYysOpPtTwa6MKJHukstEj57G e+CwTyaBzP2nAej/fCRZOma+wnCAWMjf+5rLM9eLpJ/gD/+tVFSS4cHsq2tOEGFv0fuYn0BOdai/ jAsAhQJyKv6trX0md4VO8s8jSvXBYM7ZAIULv4weIKAF+VPl5xnnjnAzpzHsxI=X02go'
+default['mysqlconnector'] = 'mysql-connector-java-5.1.34.jar'
+default['oldmysqlconnector'] = [ 'mysql-connector-java-5.1.26.jar', 'mysql-connector-java-5.1.30.jar' ]
+default['yum_testing'] = '/opt/yum-repo/testing'
+default['yum_archive'] = '/yumrepo-backup/archive'
+default['archive_retention'] = '5'
+default['promethean_subnets'] = '10.15.0.0/24,10.20.0.0/21,10.21.0.0/24,10.22.0.0/24,10.25.0.0/24,10.25.1.0/24,10.25.2.0/24,10.25.10.0/24,10.30.0.0/24,172.20.0.0/19,172.20.50.0/24,172.22.0.0/21,172.23.0.0/24'
+default['email']['domain'] = 'prometheanjira.com'
+default['email']['networks'] = '127.0.0.0/8, 10.0.0.0/16, 172.31.0.0/16'
+default['java']['version'] = '8'

@@ -1,0 +1,5 @@
+#!/bin/sh
+/bin/find /var/log/httpd/ -mtime +5 -exec rm -rf {} \;
+if [ ! -f /var/log/httpd ]; then
+  mkdir -p /var/log/httpd; chown -R apache.apache /var/log/httpd
+fi

@@ -1,0 +1,26 @@
+#!/bin/bash
+#####################################################
+## update_chefsolo_data                            ##
+## A script to update a Chef Solo node's data      ##
+#####################################################
+
+chef_root=/etc/chef
+
+expunge_oldchef_data() {
+  cd ${chef_root};
+  rm -rf cookbooks data_bags environments roles;
+  rm -rf /var/chef/cache/*;
+  chefsolorpm=`rpm -qa|grep chefsolodata`;
+  rpm -e ${chefsolorpm}; 
+}
+
+update_chefsolo_data() {
+  echo "Updating Chef Solo data...";
+  yum clean all;
+  yum -y install chefsolodata.x86_64;
+  echo "Chef Solo Data has been updated!";
+}
+
+expunge_oldchef_data
+update_chefsolo_data
+

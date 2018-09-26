@@ -1,0 +1,8 @@
+NETWORKING=yes
+NETWORKING_IPV6=no
+NOZEROCONF=true
+<% if @hostname.nil? || @hostname.empty? -%>
+HOSTNAME=<%= node['hostname'] %>
+<% else -%>
+HOSTNAME=<%= @hostname %>
+<% end -%>

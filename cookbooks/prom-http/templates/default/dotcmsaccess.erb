@@ -1,0 +1,43 @@
+# This sets the allow/deny method based on version
+<% if node['platform_version'].to_i == "7" -%>
+  <% allow_method = "Require IP" -%>
+  <% deny_method = "Require not ip" -%>
+<% else -%>
+  <% allow_method = "Allow from" -%>
+  <% deny_method = "Deny from" -%>
+<% end -%>
+## CountryBlock
+<% unless @countryblock.nil? || @countryblock.empty? -%>
+  <% @countryblock.each do |country| -%>
+    SetEnvIf GEOIP_COUNTRY_CODE <%= country %> Block=1
+  <% end -%>
+<% end -%>
+
+## AWS IP Addresses
+<% unless @internalblock.nil? || @internalblock.empty? -%>
+  <% @internalblock.each do |internal| -%>
+    SetEnvIf X-Forwarded-For <%= internal %> ALLOWIP=1
+  <% end -%>
+<% end -%>
+
+    Order deny,allow
+    <%= deny_method %> env=Block
+## End CountryBlock
+## Begin Whitelist
+    <% @whitelist_ip.each_pair do |name, ipaddress| -%>
+      <% if ipaddress != 'whitelist' -%>
+    SetEnvIf X-Forwarded-For <%= ipaddress %> ALLOWIP=1
+      <% end -%>
+    <% end -%>
+    <%= allow_method %> env=ALLOWIP
+## End Whitelist
+## Begin Blacklist
+    <% @blacklist_ip.each_pair do |name, ipaddress| -%>
+      <% if ipaddress != 'blacklist' -%>
+    SetEnvIf X-Forwarded-For <%= ipaddress %> BLOCKIP=1
+      <% end -%>
+    <% end -%>
+    <%= deny_method %> env=BLOCKIP
+## End Blacklist
+# We add the Final allow method from the recipe based on version
+    <%= @deny_external %>

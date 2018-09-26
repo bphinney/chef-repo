@@ -1,0 +1,13 @@
+#!/bin/bash
+echo "Updating manifests and repo"
+cd /opt/zidoo-x6-pro/.repo/manifests
+git pull --rebase && echo "Pulled new manifests" || { echo "Error pulling manifests"; exit 1; }
+echo "Pulled new source code, now resetting build and kernel"
+cd /opt/zidoo-x6-pro/kernel
+git reset --hard
+cd /opt/zidoo-x6-pro/build
+git reset --hard
+echo "Finished resetting build/kernel, now syncing repo"
+cd /opt/zidoo-x6-pro
+.repo/repo/repo sync && echo "Sync completed" || { echo "Sync failed"; exit 1; }
+echo "Manifest and repo is synced"

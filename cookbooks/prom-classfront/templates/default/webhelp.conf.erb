@@ -1,0 +1,72 @@
+#NameVirtualHost <%= node['ipaddress'] %>:80
+
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    DocumentRoot /opt/www/webhelp
+    ServerName <%= node["webhelp"]["webhelpservername"] %>
+<% unless node['webhelp']['webhelpalias'].nil? || node['webhelp']['webhelpalias'].empty? -%>
+    ServerAlias <%= node['webhelp']['webhelpalias'] %> <%= node['apache']['maintenance_bypass'] %>
+<% else -%>
+    ServerAlias <%= node["webhelp"]["webhelpservername"] %> <%= node['apache']['maintenance_bypass'] %>
+<% end -%>
+
+
+    CustomLog logs/webhelp_access.log combined
+    ErrorLog logs/webhelp_error.log
+    
+    FileETag -INode +MTime +Size
+
+<% if node['apache']['maintenance'] == "true" && `rpm -qa | grep maintenance` -%>
+Include conf.d/maintenance.redirect
+<% end -%>
+
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} ^/$ 
+    RewriteRule ^/$ /webhelp [L,R]
+<% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+
+Alias /webhelp	/opt/www/webhelp
+<Directory "/opt/www/webhelp">
+    Options -Indexes
+    DirectoryIndex help-en-us.htm
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+<% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+    AuthDigestDomain /opt/www/webhelp https://<%= node["webhelp"]["webhelpservername"] %>/webhelp
+
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+
+</Directory>
+
+<% if "test -d /opt/www/maintenance" -%>
+Alias /maintenance        /opt/www/maintenance
+<Directory "/opt/www/maintenance">
+    Options -Indexes
+    DirectoryIndex index.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+<% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+    AuthDigestDomain /opt/www/maintenance https://<%= node["webhelp"]["webhelpservername"] %>/maintenance
+
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+
+</Directory>
+<% end -%>
+
+</VirtualHost>
+

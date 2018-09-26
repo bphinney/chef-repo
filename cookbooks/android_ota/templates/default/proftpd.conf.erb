@@ -1,0 +1,14 @@
+#
+# Copyright 2016, Promethean, Inc.
+#
+# Master ProFTPD Configuration
+
+Include /etc/proftpd/conf.d/ota_sftp.conf
+
+<IfModule mod_auth_pam.c>
+AuthPAM off
+</IfModule>
+
+<Limit LOGIN>
+  DenyAll
+</Limit>

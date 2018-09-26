@@ -1,0 +1,67 @@
+# Properties file for foundation-load
+
+# Database connection information
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=5
+spring.datasource.foundationConfig.maxIdle=5
+spring.datasource.foundationConfig.maxActive=20
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+
+#Task executor pool size
+batch.integration.executor.pool.size=25
+batch.commit.size=50
+
+# RabbitMQ Section
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.enable=true
+<% end -%>
+rabbitmq.host=<%= @rabbitmqserver %>
+rabbitmq.port=<%= @rabbitmqport %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+
+rabbitmq.classflow.batch.partition.consumers=8
+rabbitmq.classflow.batch.tenant.job.consumers=2
+rabbitmq.addresses=<%= @rmqaddresses %>
+
+<% if node.chef_environment == "local" -%>
+tenant.default.tenant=localhost
+<% else -%>
+tenant.default.tenant=<%= @tenant_id %>
+<% end -%>
+guiffy.enabled=false
+
+#import directory
+sisDirectory=/opt/tomcat/import/
+
+#IN-447: SIS Import via SFTP File Transfer
+sftp.enable=<%= node['sftp']['enable'] %>
+sftp.host=<%= @sftp_host %>
+sftp.port=<%= @sftp_port %>
+sftp.user.name=<%= @sftp_user %>
+sftp.user.password=<%= @sftp_pass %>
+sftpDirectory=<%= node['sftp']['sisremotedir'] %>
+sisRootDirectory=<%= node['sftp']['sislocaldir'] %>
+sftp.polling.service.cron=<%= node['sftp']['pollingservicecron'] %>
+sftp.polling.gateway.timeout=<%= node['sftp']['pollinggatewaytimeout'] %>
+local.polling.interval=<%= node['localpollinginterval'] %>
+
+# Foundation Load
+rabbitmq.classflow.elasticsearch.queuename=<%= node["floadqueuename"] %>
+rabbitmq.classflow.elasticsearch.error.queuename=<%= node["floaderrqueuename"] %>
+rabbitmq.classflow.elasticsearch.routingkey=<%= node["floadroutingkey"] %>
+rabbitmq.classflow.elasticsearch.consumers=<%= node["floadconsumers"] %>
+rabbitmq.classflow.elasticsearch.error.routingkey=<%= node["floaderrroutingkey"] %>

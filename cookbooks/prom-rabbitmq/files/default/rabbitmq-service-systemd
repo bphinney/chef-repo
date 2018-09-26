@@ -1,0 +1,10 @@
+[Unit]
+Description=Rabbitmq messaging server
+Requires=multi-user.target
+
+[Service]
+ExecStart=/usr/sbin/rabbitmq-server start
+ExecStop=/usr/sbin/rabbitmq-server stop
+
+[Install]
+WantedBy=multi-user.target

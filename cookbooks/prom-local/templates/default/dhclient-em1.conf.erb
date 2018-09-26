@@ -1,0 +1,7 @@
+interface "em1" {
+<% unless node.recipes.include?('prom-local::localdnsserver') -%>
+    prepend domain-name-servers <%= node['serveraddress'] %>;
+<% else -%>
+    prepend domain-name-server <%= node['ipaddress'] %>
+<% end -%>
+}

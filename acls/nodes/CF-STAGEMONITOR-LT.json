@@ -1,0 +1,57 @@
+{
+  "create": {
+    "actors": [
+      "CF-STAGEMONITOR-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "read": {
+    "actors": [
+      "CF-STAGEMONITOR-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "update": {
+    "actors": [
+      "CF-STAGEMONITOR-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "delete": {
+    "actors": [
+      "CF-STAGEMONITOR-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "grant": {
+    "actors": [
+      "CF-STAGEMONITOR-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  }
+}

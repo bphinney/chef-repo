@@ -1,0 +1,74 @@
+#NameVirtualHost <%= node["ipaddress"] %>:80
+################################################################
+## Default Tenant Virtual Host Section                         #
+################################################################
+
+<VirtualHost <%= node["ipaddress"] %>:80>
+
+    DocumentRoot /opt/www/prworld
+<% unless node['prworld']['prworldservername'].nil? || node['prworld']['prworldservername'].empty? -%>
+    ServerName <%= node['prworld']["prworldservername"] %>
+<% else -%>
+    ServerName <%= node['apachservername'] %>
+<% end -%>
+<% unless node['prworld']['prworld-maintbypass'].nil? || node['prworld']['prworld-maintbypass'].empty? -%>
+    ServerAlias node['prworld']['prworld-maintbypass']
+<% end -%>
+<% unless node['prworld']['prworldalias'].nil? || node['prworld']['prworldalias'].empty? -%>
+    ServerAlias <%= node['prworld']['prworldalias'] %>
+<% end -%>
+
+    CustomLog logs/prworld_access.log combined
+    ErrorLog logs/prworld_error.log
+
+<% if node['prworld']['prmaintenance'] == "true" && `rpm -qa | grep prmaintenance` -%>
+    Include conf.d/prmaintenance.redirect
+<% end -%>
+
+    RewriteEngine On
+<% if node['prworld']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !(/status|/connectiontest) https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+# Adding a block for invalid URL currently hitting production.
+    RewriteCond %{QUERY_STRING} ^.*(error=invalid_request|error=access_denied).* [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+<% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+  <% if node['prworld']['prworldservername'].nil? || node['prworld']['prworldservername'].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['prworld']['prworldservername'] %>
+  <% else -%>
+    AuthDigestDomain /opt/www/html https://<%= node['apacheserver'] %>
+  <% end -%>
+<% end -%>
+
+<Directory "/opt/www/prworld">
+    AllowOverride All
+    DirectoryIndex index.html
+    Include conf.d/.htaccess
+
+<% if node['prworld']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+<% if node['prworld']["prworldservername"].nil? || node['prworld']["prworldservername"].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['prworld']["prworldservername"] %>
+<% else -%>
+    AuthDigestDomain /opt/www/html https://<%= node['prworld']["prworldservername"] %>
+<% end -%>
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+</Directory>
+
+<% if File.exists?("/etc/httpd/conf.d/prworld.proxy") -%>
+    Include conf.d/prworld.proxy
+<% end -%>
+
+</VirtualHost>
+
+<% if File.exists?("/etc/httpd/conf.d/prworldmulti.load") -%>
+    Include conf.d/prworldmulti.load
+<% end -%>

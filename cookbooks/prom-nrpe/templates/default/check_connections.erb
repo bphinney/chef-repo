@@ -1,0 +1,14 @@
+#!/bin/bash
+function cou() {
+  echo $ss | grep -oP $1 | wc -l
+}
+[[ `which lsof` == '/usr/sbin/lsof' ]] && {
+<% if node['platform_version'].to_i == 7 -%>
+  ss=`lsof -p \`systemctl status activtomcat | grep -oP [0-9]+\` | grep TCP`
+<% else -%> 
+  ss=`lsof -p \`service activtomcat status | grep -oP [0-9]+\` | grep TCP`
+<% end -%>
+} || {
+  ss=`ss`
+}
+echo "Total Connections: `echo \"$ss\" | wc -l` MySQL: `cou mysql` RabbitMQ: `cou amqp` Collab: `cou webcache` AF: `cou 8009` Elasticsearch: `cou \"vrace|6379|wap-wsp\"` Hazelcast: `cou 5701`"

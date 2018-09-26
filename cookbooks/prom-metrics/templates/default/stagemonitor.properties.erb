@@ -1,0 +1,50 @@
+stagemonitor.active=true
+<% if node['stagemonitor']['version'] == "0.14.1-0" -%>
+stagemonitor.instrument.include=promethean
+<% end %>
+stagemonitor.applicationName=<%= @application %>
+<% if @reloadable == "true" -%>
+stagemonitor.configuration.reload.interval=60
+<% else -%>
+stagemonitor.configuration.reload.interval=0
+<% end -%>
+stagemonitor.ehcache.get.timer=true
+stagemonitor.elasticsearch.url=http://<%= @smserverip %>:9200/
+stagemonitor.internal.monitoring=true
+stagemonitor.password=
+stagemonitor.profiler.callStackEveryXRequestsToGroup=1
+<% if node['stagemonitor']['logging_active'] == "true" -%>
+stagemonitor.profiler.logCallStacks=true
+<% else -%>
+stagemonitor.profiler.logCallStacks=false
+<% end -%>
+stagemonitor.profiler.minExecutionTimeNanos=100000
+stagemonitor.jdbc.collectDbTimePerRequest=true
+stagemonitor.profiler.jdbc.collectSql=true
+stagemonitor.profiler.jdbc.collectPreparedStatementParameters=true
+<% if node['stagemonitor']['logging_active'] == "true" -%>
+stagemonitor.reporting.interval.console=60
+<% else -%>
+stagemonitor.reporting.interval.console=0
+<% end -%>
+stagemonitor.reporting.jmx=true
+stagemonitor.reporting.interval.graphite=60
+stagemonitor.reporting.graphite.hostName=<%= @smserverip %>
+stagemonitor.reporting.graphite.port=2003
+stagemonitor.requestmonitor.cpuTime=true
+stagemonitor.requestmonitor.collectRequestStats=true
+stagemonitor.requestmonitor.http.collectHeaders=true
+stagemonitor.requestmonitor.http.parseUserAgent=true
+stagemonitor.requestmonitor.noOfWarmupRequests=0
+stagemonitor.requestmonitor.requestTraceTTL=1w
+stagemonitor.requestmonitor.warmupSeconds=0
+<% if @browser_widget == "true" -%>
+stagemonitor.web.widget.enabled=true
+<% else -%>
+stagemonitor.web.widget.enabled=false
+<% end -%>
+stagemonitor.web.rum.enabled=true
+stagemonitor.web.collectPageLoadTimesPerRequest=true
+stagemonitor.web.monitorOnlyForwardedRequests=false
+stagemonitor.web.paths.excluded=/resources, /webjars, /dandelion-assets
+stagemonitor.instanceName=<%= node.chef_environment %>

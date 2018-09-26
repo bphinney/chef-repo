@@ -1,0 +1,19 @@
+ProxyRequests           Off
+ProxyPreserveHost       On
+
+<Proxy balancer://kibana>
+   Order allow,deny
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+
+BalancerMember http://<%= node['kibana']['es_server']%>/
+
+</Proxy>
+
+<Location />
+
+ProxyPass	balancer://kibana/ stickysession=JSESSIONID|jsessionid
+
+</Location>
+

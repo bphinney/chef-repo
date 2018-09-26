@@ -1,0 +1,18 @@
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass'] %>
+spring.datasource.foundationConfig.initialSize=<%= node["jdbc"]["jdbc_initsize"] %>
+spring.datasource.foundationConfig.minIdle=<%= node["jdbc"]["jdbc_fcminidle"] %>
+spring.datasource.foundationConfig.maxIdle=<%= node["jdbc"]["jdbc_fcmaxidle"] %>
+spring.datasource.foundationConfig.maxActive=<%= node["jdbc"]["jdbc_maxactive"] %>
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+
+tenant.default.tenant=<%= @tenantid %>
+report.datasource.reporting=true

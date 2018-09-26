@@ -1,0 +1,15 @@
+<VirtualHost  *:80>
+    ServerAdmin webmaster@prometheanjira.com
+    DocumentRoot /var/www/html
+    ServerName prometheanjira.com
+    ErrorLog logs/error_log
+    CustomLog logs/access_log common
+
+    AllowEncodedSlashes On
+
+    <Location />
+      Order allow,deny
+      Deny from all
+    </Location>
+
+</VirtualHost>

@@ -1,0 +1,60 @@
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Max-Age "1000"
+Header always set Access-Control-Allow-Headers "X-Requested-With, Content-Type, Origin, Authorization, Accept, Client-Security-Token, Accept-Encoding"
+Header always set Access-Control-Allow-Methods "POST, GET, OPTIONS, DELETE, PUT"
+<IfModule mod_cdn.c>
+
+# mod_cdn will only CDNify links in HTML if the Content-Type of the
+# object being delivered matches one that's been specified.  Include
+# any content-types that equate to (X)HTML; here are the standard
+# ones:
+CDNHTMLContentType text/html application/xhtml+xml
+
+# Typically we want to replace links to static content, e.g., images,
+# static HTML files, javascript, CSS, etc.  First we have to specify
+# (X)HTML tags and attributes where we'll look for links to replace.
+# In general when CDNifying a site, we don't want to replace URLs in
+# all the places they might occur in HTML; for example, we probably
+# don't want form submissions to go through the CDN.  I've left
+# commented a couple of tags/attributes where there will be URLs we
+# probably don't want to CDNify.  Note: this list is based on that
+# from mod_proxy_html 3.0.1.
+
+# Here's the declaration for W3C HTML 4.01 and XHTML 1.0:
+CDNHTMLLinks    a               href
+CDNHTMLLinks    area            href
+CDNHTMLLinks    base            href
+CDNHTMLLinks    blockquote      cite
+CDNHTMLLinks    del             cite
+CDNHTMLLinks    head            profile
+CDNHTMLLinks    img             src longdesc usemap
+CDNHTMLLinks    input           src usemap
+CDNHTMLLinks    ins             cite
+CDNHTMLLinks    link            href
+CDNHTMLLinks    object          classid codebase data usemap
+CDNHTMLLinks    q               cite
+CDNHTMLLinks    script          src for
+
+# Here are some legacy tags/attributes from transitional (X)HTML:
+CDNHTMLLinks    frame           src longdesc
+CDNHTMLLinks    iframe          src longdesc
+CDNHTMLLinks    body            background
+CDNHTMLLinks    applet          codebase
+
+CDNHTMLRemapURLServer \.css$ i
+#CDNHTMLRemapURLServer \.css\? iq
+#CDNHTMLRemapURLServer (?:[\/])?(?:[a-zA-Z0-9]+[\/])*(?:[0-9A-Za-z]+)+\.css x
+CDNHTMLRemapURLServer \.gif$ i
+CDNHTMLRemapURLServer \.ico$ i
+CDNHTMLRemapURLServer \.jpg$ i
+CDNHTMLRemapURLServer \.jpeg$ i
+CDNHTMLRemapURLServer \.png$ i
+CDNHTMLRemapURLServer \.mp4$ i
+CDNHTMLRemapURLServer modernizr\.js$ iq
+
+# Promethean attributes
+CDNHTMLFromServers <%= node['cdn']['from_server'] %>
+CDNAuthKey  <%= node['cdn']['key'] %>
+CDNHTMLToServer  <%= node['cdn']['host'] %>
+</IfModule>
+

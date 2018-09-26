@@ -1,0 +1,35 @@
+#!/bin/bash
+version=$1
+if [ "$version" == "" ]; then
+  echo "Enter release version here:" ;read version
+fi
+
+type=$2
+if [ "$type" == "" ]; then
+  echo "Enter type of notification: (test|real)"; read type
+fi
+
+if [ "$type" == "test" ]; then
+  dist_list="bryan.phinney@prometheanproduct.com"
+elif [ "$type" == "real" ]; then
+  dist_list="<%=node['chef']['release_list'] %>"
+else
+  dist_list=""
+  echo "No type specified"; exit 1
+fi
+
+message="This is a notification that a Deployment of version $version has been completed in the \
+ <%= node['chef']['datacenter'] %> environment.  Initial QA validation can be started now \
+ and any other interested parties can begin looking for any issues with\
+ the software deployment."
+
+if [ "$version" == "" ]; then
+  echo "There is no version included for the release message."
+else
+  for i in `echo $dist_list`; do 
+    echo $message | /bin/mail -s "Production Release Notification" -r "devops@prometheanworld.com" $i && echo "Release Notification has been sent to $i"
+  done
+  echo "All release messages sent"
+fi
+echo "Done"
+

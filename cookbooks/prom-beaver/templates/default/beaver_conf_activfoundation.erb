@@ -1,0 +1,73 @@
+[/opt/tomcat/logs/activfoundation.log]
+tags: activfoundation
+type: activfoundation 
+add_field: environment,<%= node.chef_environment %>
+# Following regex is the %{TIME} pattern extruded from the grok-patterns
+# file. Beaver multiline matches lines consecutively, so this will multiline
+# exceptions from timestamp to timestamp.
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/foundation-async.log]
+tags: foundation-async
+type: foundation-async
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/flipchart-integration.log]
+tags: flipchart-integration
+type: flipchart-integration
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/foundation-load.log]
+tags: foundation-load
+type: foundation-load
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/foundation-management.log]
+tags: foundation-management
+type: foundation-management
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/parent-service.log]
+tags: parent-service
+type: parent-service
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/global-service.log]
+tags: global-service
+type: global-service
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/foundation-maint.log]
+tags: foundation-maint
+type: foundation-maint
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/foundation-report.log]
+tags: foundation-report
+type: foundation-report
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+
+[/opt/tomcat/logs/authserver.log]
+tags: authserver
+type: authserver
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^((?!^(?!<[0-9])(?:2[0123]|[01]?[0-9]):(?:[0-5][0-9])(?::(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))(?![0-9])).)*$
+exclude: \.gz
+

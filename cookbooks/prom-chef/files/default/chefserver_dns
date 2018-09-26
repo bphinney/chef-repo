@@ -1,0 +1,78 @@
+#!/opt/chef/embedded/bin/ruby -W0
+######################################################################
+# Promethean DevOps Chef Server DNS Update                          ##
+# Utilzing CloudFlare's API                                         ##
+#                                                                   ##
+# Copyright Promethean World Inc. 2014                              ##
+######################################################################
+## Setup Includes                                                   ##
+######################################################################
+require 'cloudflare'               # For access to CloudFlare
+%x(chef-client -o prom-chef::chef-api-gem)
+require 'chef-api'                 # For accessing Chef Data
+require 'vine'	                   # Required for deep nested Hash Searching
+
+include ChefAPI::Resource          # 
+ChefAPI.log_level = :fatal         # Disable the annoying SSL warning messages
+
+
+File.open('/root/.chef/knife.rb').each do |line|
+    if line.match("chef_server_url"); $client_uri = line.scan(/'([^']*)'/).join(" ");  end
+    if line.match("client_key");      $client_key = line.scan(/'([^']*)'/).join(" ");  end
+    if line.match("node_name");       $client_node = line.scan(/'([^']*)'/).join(" "); end
+  end
+  connection = ChefAPI::Connection.new(
+    client: $client_node,
+    key: $client_key,
+    ssl_verify: false,
+    endpoint: $client_uri
+  )
+
+connection.data_bags.fetch('cloudflare').items.each do |item|
+    if item.id == "main"
+      $dssuperitem = item
+    end
+  end
+
+    cf_api_key    = $dssuperitem.data.access('CF_API_KEY')
+    cf_api_user   = $dssuperitem.data.access('CF_USER')
+
+# AWS Specific Address
+aws_public_ip = %x(wget -qO- http://instance-data/latest/meta-data/public-ipv4)
+if !aws_public_ip.nil? || !aws_public_ip.empty?
+   aws_region = %x(curl --silent http://instance-data/latest/dynamic/instance-identity/document |grep region|awk -F: '{print $2}' | cut -d'"' -f 2).strip!
+
+      if aws_region == "us-east-1"
+         chef_domain = "prometheanjira.com"
+      elsif aws_region == "us-west-2"
+         chef_domain = "classflow.com"
+      elsif aws_region == "ap-southeast-1"
+         chef_domain = "classflow.ac"
+      elsif aws_region == "cn-north-1"
+         chef_domain = "classflow.cn"
+      elsif aws_region == "eu-west-1"
+         chef_domain = "classflow.co.uk"
+      else
+         chef_domain = "undefined"
+      end
+
+    cf = CloudFlare::connection(cf_api_key, cf_api_user)
+    begin
+      all_subdomains = cf.rec_load_all chef_domain 
+      sub_domain_details = all_subdomains['response']['recs']['objs'].select { |d| d['display_name'] == "chef" }
+      stored_ip = sub_domain_details.first['content']
+      record_id = sub_domain_details.first['rec_id']
+      if stored_ip != aws_public_ip
+           cf.rec_edit(chef_domain, 'A', record_id, "chef", aws_public_ip, 1)
+      else
+         exit
+      end
+    rescue => e
+      puts e.message
+    else
+    end
+
+# The following is a place holder if we leave amazon.  For now, we don't know what this is.
+else
+   generic_public_ip = %x(curl -s checkip.dyndns.org|sed -e 's/.*Current IP Address: //' -e 's/<.*$//')
+end

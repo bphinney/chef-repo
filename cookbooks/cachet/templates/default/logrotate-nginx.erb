@@ -1,0 +1,11 @@
+/var/log/nginx/*log {
+    missingok
+    notifempty
+    sharedscripts
+    delaycompress
+    rotate 5
+    postrotate
+        systemctl reload nginx > /dev/null 2>/dev/null || true
+    endscript
+}
+

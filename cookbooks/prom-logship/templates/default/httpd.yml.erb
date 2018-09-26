@@ -1,0 +1,14 @@
+# Config file for activtomcat logs
+filebeat:
+  prospectors:
+    -
+      paths:
+        - /var/log/httpd/*log
+      encoding: utf-8
+      input_type: log
+      fields_under_root: true
+      fields:
+        environment: "<%= node['chef_environment'] %>"
+        application: "httpd"
+      tail_files: true
+

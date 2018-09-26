@@ -1,0 +1,7 @@
+<% if node['java']['jdk_version'] == "8" -%>
+JAVA_HOME=<%= '/usr/lib/jvm/java-1.8.0' %>
+<% else -%>
+JAVA_HOME=<%= '/usr/lib/jvm/java-1.7.0' %>
+<% end -%>
+START_OPTS=<%= 'start' %>
+STOP_OPTS=<%= 'stop 120 -force' %>

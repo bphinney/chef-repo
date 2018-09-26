@@ -1,0 +1,7 @@
+{
+  "id": "<%= @volume %>",
+  "hostgroup_name": "glusterfs-monitor",
+  "service_template": "glusterfs-check",
+  "command_line": "/usr/lib64/nagios/plugins/check_nrpe -c check_glusterfs -H $HOSTADDRESS$ -t 60 -a <%= @volume %> <%= @bricks %> 20 10",
+  "event_handler": "remount-volume!<%= @volume %>"
+}

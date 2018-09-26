@@ -1,0 +1,192 @@
+NameVirtualHost *:80
+<% if File.exists?("/etc/httpd/conf.d/block.load") -%>
+    Include /etc/httpd/conf.d/block.load
+<% end -%>
+<VirtualHost  *:80>
+    ServerAdmin webmaster@prometheanjira.com
+    DocumentRoot /var/www/html
+    ServerName <%= @appname %>.prometheanjira.com
+    ServerAlias <%= @appname %>direct.prometheanjira.com
+    ErrorLog logs/<%= @appname %>-error_log
+    CustomLog logs/<%= @appname %>-access_log common
+
+<% if @sslRedirect == "true" -%>
+    AllowEncodedSlashes On
+
+    RewriteEngine On
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteCond %{REQUEST_URI} !^/(rest|plugins).*
+    RewriteRule (.*) https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% if @appname == "jira" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8080/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8080/
+
+<% end -%>
+
+<% if @appname == "wiki" -%>
+    RewriteRule ^/%2Fhomepage.action$ https://%{HTTP_HOST}/dashboard.action [L,R]
+    RewriteRule ^/%2Findex.action$ https://%{HTTP_HOST}/dashboard.action [L,R]
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8090/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8090/
+<% end -%>
+<% if @appname == "bamboo" -%>
+    RewriteRule ^/%2Fstart.action$ https://%{HTTP_HOST}/allPlans.action [L,R]
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8085/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8085/
+<% end -%>
+<% if @appname == "stash" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:7990/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:7990/
+<% end -%>
+<% if @appname == "artifactory" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8081/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8081/
+<% end -%>
+<% end -%>
+
+</VirtualHost>
+
+<VirtualHost  *:80>
+    ServerAdmin webmaster@prometheanjira.com
+    DocumentRoot /var/www/html
+    ServerName <%= @appname %>direct.prometheanjira.com
+    ErrorLog logs/<%= @appname %>direct-error_log
+    CustomLog logs/<%= @appname %>direct-access_log common
+
+    AllowEncodedSlashes On
+
+    RewriteEngine On
+<% if @appname == "jira" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / ajp://<%= node['ipaddress'] %>:8009/
+    ProxyPassReverse / ajp://<%= node['ipaddress'] %>:8009/
+
+<% end -%>
+
+<% if @appname == "wiki" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / ajp://<%= node['ipaddress'] %>:8010/
+    ProxyPassReverse / ajp://<%= node['ipaddress'] %>:8010/
+<% end -%>
+<% if @appname == "bamboo" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8085/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8085/
+<% end -%>
+<% if @appname == "stash" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:7990/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:7990/
+<% end -%>
+<% if @appname == "artifactory" -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Order allow,deny
+      Allow from all
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8081/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8081/
+<% end -%>
+
+</VirtualHost>

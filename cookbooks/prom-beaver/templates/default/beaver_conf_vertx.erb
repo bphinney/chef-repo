@@ -1,0 +1,18 @@
+[/opt/vertx/logs/vertx.log]
+tags: collabserver 
+type: collabserver 
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^\s+
+exclude: \.gz
+
+[/opt/vertx/logs/startup.log]
+tags: collabserver 
+type: collabserver 
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^\s+
+exclude: \.gz
+
+
+
+
+

@@ -1,0 +1,40 @@
+#!/bin/sh
+DAYSTORETAINBACKUPS=<%= @days_to_retain_backups %>
+BACKUPLOCATION=/<%= @logstash_bkup_mount %>
+BACKUPTIME=`date $UNIXTIME +%s`
+BACKUPSPRESENT=`curl -XGET 'http://localhost:9200/_snapshot/_all?pretty' | grep -c logstash_backup`
+if [ $BACKUPSPRESENT -eq 0 ]; then
+  mkdir -p $BACKUPLOCATION/logstash_backup
+  chown -R elasticsearch. $BACKUPLOCATION
+  curl -XPUT 'http://localhost:9200/_snapshot/logstash_backup' -d '{
+    "type": "fs",
+    "settings": {
+        "location": "/<%= @logstash_bkup_mount %>/logstash_backup",
+        "compress": true
+    }
+  }'
+fi
+export DATELIST=`find $BACKUPLOCATION/logstash_backup/metadata* | cut -f3 -d"_" | xargs -I {} date -d @{} +%Y.%m.%d | xargs -I {} echo logstash-{} | paste -s -d, -`,logstash-`date +%Y.%m.%d`
+export DATELIST=`echo $DATELIST | grep -oP "[^,]+" | uniq | paste -s -d, -`
+
+/usr/bin/curl -XPUT "localhost:9200/_snapshot/logstash_backup/snapshot_$BACKUPTIME" -d '{
+  "indices": "$DATELIST",
+  "wait_for_completion": "true"
+}'
+
+find $BACKUPLOCATION/logstash_backup/metadata* -mtime +$DAYSTORETAINBACKUPS | cut -f3 -d"_" | xargs -I {} /usr/bin/curl -XDELETE "localhost:9200/_snapshot/logstash_backup/snapshot_{}"
+find $BACKUPLOCATION/logstash_backup -maxdepth 1 -type f -mtime +$DAYSTORETAINBACKUPS | xargs rm
+
+for i in `curl --silent 'http://localhost:9200/_cat/indices?v' | grep -oP "logstash-....\...\..."`; do
+  [[ `echo $DATELIST | grep $i` == "" ]] && {
+    curl -XDELETE "http://localhost:9200/$i/"
+  }
+done
+
+for i in `find $BACKUPLOCATION/logstash_backup/indices/ -maxdepth 1 -type d | grep logstash | cut -f6 -d"/"`; do
+  [[  `curl --silent 'http://localhost:9200/_cat/indices?v' | grep $i` == "" ]] && {
+    rm -rf $BACKUPLOCATION/logstash_backup/indices/$i
+  }
+done
+
+echo "SNAPSHOT BACKUPS COMPLETE!  TIMESTAMP: $BACKUPTIME"

@@ -1,0 +1,30 @@
+########################################
+## com.promethean.dotcms2 properties
+########################################
+
+## SalesForce API settings - environment-specific
+com.promethean.dotcms2.SFAPI_BASEURL=<%= node['prworld']['baseurl'] %>
+com.promethean.dotcms2.SFAPI_CLIENTID=<%= node['prworld']['clientid'] %>
+com.promethean.dotcms2.SFAPI_CLIENTSECRET=<%= node['prworld']['clientsecret'] %>
+com.promethean.dotcms2.SFAPI_USERNAME=<%= node['prworld']['username'] %>
+com.promethean.dotcms2.SFAPI_PASSWORD=<%= node['prworld']['password'] %>
+
+<% unless node['prworld']['altbaseurl'].nil? || node['prworld']['altbaseurl'].empty? -%>
+## SalesForce API settings (alternate)
+com.promethean.dotcms2.SFAPI_ALT_BASEURL=<%= node['prworld']['altbaseurl'] %>
+com.promethean.dotcms2.SFAPI_ALT_CLIENTID=<%= node['prworld']['altclientid'] %>
+com.promethean.dotcms2.SFAPI_ALT_CLIENTSECRET=<%= node['prworld']['altclientsecret'] %>
+com.promethean.dotcms2.SFAPI_ALT_USERNAME=<%= node['prworld']['altusername'] %>
+com.promethean.dotcms2.SFAPI_ALT_PASSWORD=<%= node['prworld']['altpassword'] %>
+<% end -%>
+
+com.promethean.dotcms2.SFAPI_OLDIMGDOMAIN=<%= node['prworld']['oldimgdomain'] %>
+com.promethean.dotcms2.SFAPI_NEWIMGDOMAIN=<%= node['prworld']['newimgdomain'] %>
+
+
+## Reset password settings - environment-specific
+com.promethean.dotcms2.RESET_PASSWORD_EMAIL_FROM=<%= node['prworld']['emailfrom'] %>
+
+## Support Site Email
+com.promethean.dotcms2.SUPPORT_EMAIL_FROM=<%= node['prworld']['support_emailfrom'] %>
+com.promethean.dotcms2.SUPPORT_EMAIL_FROM_NAME=Promethean Support

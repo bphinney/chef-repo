@@ -1,0 +1,301 @@
+#!/bin/bash
+
+# Prep the filesystem with the application names.
+if [ -f /tmp/rpm-appnames.txt ]; then rm -f /tmp/rpm-appnames.txt; fi
+if [ -f /tmp/rpm-versions.txt ]; then rm -f /tmp/rpm-versions.txt; fi
+if [ -f /tmp/rpm-recipes.txt ]; then rm -f /tmp/rpm-recipes.txt; fi
+app_list="<%= @appnames %>"
+for i in `echo "$app_list"`; do
+        app_name=`echo $i | cut -d "|" -f1`
+        app_version=`echo $i | cut -d "|" -f2`
+        app_recipe=`echo $i | cut -d "|" -f3`
+        echo $app_name >> /tmp/rpm-appnames.txt
+	echo "${app_name}|${app_version}" >> /tmp/rpm-versions.txt
+        echo "${app_name}|${app_recipe}" >> /tmp/rpm-recipes.txt
+done
+app_list=`cat /tmp/rpm-versions.txt`
+applications=`cat /tmp/rpm-appnames.txt`
+app_names=`echo -e "$applications"`
+
+# variable definition
+ssh_command="ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+# functions
+
+pause(){
+echo "press Enter key to continue..."; read response
+}
+nodescheck(){
+if [ "$target_list" == "" ]; then
+  echo "There are no servers matching your request for $app_name in $env_targ."; break
+fi
+}
+
+environ_list(){
+env_list=`knife environment list | grep -v _default`
+}
+
+attr_select(){
+for i in `echo $app_name`; do
+  app_attribute=`grep $i\| /tmp/rpm-versions.txt | cut -d "|" -f2`
+done
+}
+
+recipe_select(){
+for i in `echo $app_name`; do
+  app_recipe=`grep $i\| /tmp/rpm-recipes.txt | cut -d "|" -f2`
+done
+}
+
+target_search(){
+target_list=`knife search node "recipes:*$app_recipe AND chef_environment:$env_targ" | grep "Node Name" | cut -d ":" -f2`
+}
+
+target_find(){
+target_first=`knife search node "recipes:*${app_recipe} AND chef_environment:${env_targ}" | grep "Node Name" | cut -d ":" -f2`
+target_second=`knife search node "recipes:*${app_recipe} AND chef_environment:${env_targ}" | grep "Node Name" | cut -d ":" -f2`
+if [ -f /tmp/target.tmp ]; then
+  rm -f /tmp/target.tmp
+fi
+for i in `echo ${target_first}`; do echo $i >> /tmp/target.tmp; done
+for h in `echo ${target_second}`; do echo $h >> /tmp/target.tmp; done
+target_new=`cat /tmp/target.tmp | sort | uniq`
+target_list=${target_new}
+if [ -f /tmp/target.tmp ]; then  rm -f /tmp/target.tmp; fi
+}
+
+chef_version(){
+nodescheck
+for target_host in `echo $target_list`; do
+  curr_version=`knife node show $target_host -a $app_attribute | cut -d ":" -f2`
+  echo "Chef version is $curr_version on $target_host"
+done
+}
+
+rpm_version(){
+nodescheck
+for target_host in `echo $target_list`; do
+  rpm_version=`$ssh_command root@$target_host "rpm -qa | grep $app_name"`
+  echo "Version is $rpm_version on $target_host."
+done
+}
+
+chef_testrun(){
+nodescheck
+mkdir -p /tmp/chef-testrun
+for target_host in `echo $target_list`; do
+  echo "Please wait while test run is performed, this may take a few minutes...."
+  echo "Target Host is $target_host" >> /tmp/chef-testrun/chef-test.txt 2>&1
+  $ssh_command root@$target_host "chef-client -W" >> /tmp/chef-testrun/chef-test.txt 2>&1
+done
+less -f -R /tmp/chef-testrun/chef-test.txt
+rm -f /tmp/chef-testrun/chef-test.txt
+rm -r /tmp/chef-testrun
+}
+
+chef_execute(){
+nodescheck
+mkdir -p /tmp/chef-run
+for target_host in `echo $target_list`; do
+  echo "Please wait while actual run is performed, this may take a few minutes...."
+  echo "Target host is $target_host" >> /tmp/chef-run/chef-run.txt 2>&1
+  $ssh_command root@$target_host "yum clean all; sleep 30; chef-client" >> /tmp/chef-run/chef-run.txt 2>&1
+done
+less -f -R /tmp/chef-run/chef-run.txt
+rm /tmp/chef-run/chef-run.txt
+rm -r /tmp/chef-run
+}
+
+rpm_repo(){
+if [ -f /tmp/software_check ]; then
+rm /tmp/software_check
+fi
+wget --spider -o /tmp/software_check --no-proxy http://<%= @yumserver %>/yum/release/$app_name-$version.noarch.rpm
+software_yes=`grep 200 /tmp/software_check`
+software_no=`grep 404 /tmp/software_check`
+if [ "$software_yes" == "" ]; then
+   echo -e "$version of $app_name \033[31mdoes NOT\033[0m appear to be in the release repo."
+elif [ "$software_no" == "" ]; then
+   echo -e "$version of $app_name\033[32m does\033[0m appear to be in the release repo."
+fi
+rm -f /tmp/software_check
+}
+
+rpm_repo_check(){
+if [ -f /tmp/software_check ]; then
+rm /tmp/software_check
+fi
+wget --spider -o /tmp/software_check --no-proxy http://<%= @yumserver %>/yum/release/$app_name-$version.noarch.rpm
+software_yes=`grep 200 /tmp/software_check`
+software_no=`grep 404 /tmp/software_check`
+if [ "$software_yes" == "" ]; then
+   echo -e "$version of $app_name \033[31mdoes NOT\033[0m appear to be in the release repo."; exit 1
+elif [ "$software_no" == "" ]; then
+   echo -e "$version of $app_name \033[32mdoes\033[0m appear to be in the release repo."
+fi
+rm -f /tmp/software_check 
+}
+
+
+start_tomcat(){
+echo "Are you sure you want to start tomcat on your hosts? (y or n)"
+read answer
+if [ "$answer" != "y" ]; then
+echo "You did not confirm, aborting."; exit 1
+fi
+nodescheck
+for target_host in `echo $target_list`; do
+  $ssh_command root@$target_host "service activtomcat start"
+  echo "Tomcat started on $target_host."
+done
+}
+
+stop_tomcat(){
+echo "Are you sure you want to stop tomcat on your hosts? (y or n)"
+read answer
+if [ "$answer" != "y" ]; then
+echo "You did not confirm, aborting."; exit 1
+fi
+nodescheck
+  for target_host in `echo $target_list`; do
+  $ssh_command root@$target_host "service activtomcat stop"
+  echo "Tomcat stopped on $target_host."
+done
+}
+
+data_check(){
+select_env
+select_app
+attr_select
+target_search
+}
+
+data_valid(){
+select_env
+select_app
+attr_select
+recipe_select
+target_find
+}
+
+tag_instance(){
+if [ "$target_list" == "" -o "$app_name" == "" -o "$version" == "" ]; then
+  echo "Missing critical information, command can not be completed. Your command was Host: ${target_list}, App: ${app_name}, Version: ${version}."; exit 1
+fi
+
+rpm_repo_check
+
+for target_host in `echo $target_list`; do
+  deploy-software -f tag -a $app_name -v $version -t $target_host
+  echo "Version $version for application $app_name has been tagged to $target_host."
+done
+}
+
+select_env(){
+environ_list
+env=`echo $env_list`
+   clear
+   select func in $env; do
+      case $func in
+      *)
+         env_targ="$func"
+         break
+         ;;
+      esac
+   done
+}
+
+select_app(){
+app=`echo $app_names`
+   clear
+   select func in $app; do
+      case $func in
+      *)
+         app_name="$func"
+         break
+         ;;
+      esac
+   done
+}
+
+enter_version(){
+echo "Enter version number for $app_name to be deployed to $env_targ:"
+  read ver
+echo "Please confirm version is $ver. (y or no)?"
+  read answer
+if [ "$answer" != "y" ]; then
+  echo "Version not correct, please try again."; enter_version
+else
+version=$ver
+fi
+}
+
+read_me(){
+echo "This script is a simple interface to allow some automated actions against the current chef environment.  Basically, you can tag new versions of software to be deployed, execute those deployments, check for current versions per Chef, actual versions per RPM, start and stop the tomcat instance for scheduled upgrades, and perform test runs of chef client on the instances to see the effects of proposed changes.  Further functionality to stage full, multiple target/version implementations will be added later. Short list of functions is:
+a: Check version of software that Chef reports should be installed currently.
+b: Update Chef for new version of software package.
+c: Check to see if a specific version of RPM is in the yum repository.
+d: Perform a test run of chef-client to see if the changes are in line with expectations.
+e: Check to see what version of the RPM is actually installed on the target.
+f: Stop tomcat instance on the target.
+g: Start the tomcat instance on the target.
+h: Execute a Chef-client run on the target, to install new software or update the configuration.
+x: Exit the menu.
+"
+}
+#This is the actual menu for the wrapper script.
+while :
+        do
+                clear
+                echo "---------------------------------------------"
+                echo " Main Menu "
+                echo -e "---------------------------------------------\n"
+                echo -e "[\033[36ma\033[0m] \033[32mCheck Version Chef reports on Instance\033[0m \n "
+#                echo -e "[\033[36mb\033[0m] \033[31mChange Chef Version on Instance\033[0m \n"
+#                echo -e "[\033[36mc\033[0m] \033[32mYUM Repository RPM check\033[0m \n "
+                echo -e "[\033[36md\033[0m] \033[32mPerform Chef Test Run on Instance\033[0m \n "
+                echo -e "[\033[36me\033[0m] \033[32mCheck RPM version installed on Instance\033[0m \n "
+                echo -e "[\033[36mf\033[0m] \033[31mStop Tomcat on Targets\033[0m \n"
+#                echo -e "[\033[36mg\033[0m] \033[31mStart Tomcat on Targets\033[0m \n"
+                echo -e "[\033[36mh\033[0m] \033[31mExecute Chef Run on Instance\033[0m \n"
+                echo -e "[\033[36mr\033[0m] \033[32mRead Me file with some instructions\033[0m \n"
+                echo -e "[\033[36mx\033[0m] Exit\n "
+                echo "==========================="
+                echo -n "Enter your menu choice [a-x]: "
+                read choice
+                case "$choice" in
+  a)
+                data_valid; chef_version; pause
+                ;;
+#  b)
+#                data_valid; enter_version; tag_instance; pause 
+#                ;;
+#  c)
+#                data_valid; enter_version; rpm_repo; pause 
+#                ;;
+  d)
+                data_valid; chef_testrun
+                ;;
+  e)
+                data_valid; rpm_version; pause
+                ;;
+  f)
+                data_valid; stop_tomcat; pause
+                ;;
+#  g)
+#                data_valid; start_tomcat; pause
+#                ;;
+  h)
+                data_valid; chef_execute
+                ;;
+  r)
+                read_me; pause
+                ;;
+  x)
+                echo "Exiting..."; exit 0
+                ;;
+  *)
+                echo "Oops! Please select a choice [a-x]"; 
+                     echo "Press a key..."; read ;;
+                esac
+done

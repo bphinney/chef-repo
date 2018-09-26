@@ -1,0 +1,172 @@
+# Database connection information
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+spring.datasource.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.initialSize=<%= node["jdbc"]["jdbc_initsize"] %>
+spring.datasource.minIdle=<%= node["jdbc"]["jdbc_minidle"] %>
+spring.datasource.maxIdle=<%= node["jdbc"]["jdbc_maxidle"] %>
+spring.datasource.maxActive=<%= node["jdbc"]["jdbc_maxactive"] %>
+spring.datasource.maxWait=30000
+spring.datasource.testOnBorrow=true
+spring.datasource.validationQuery=SELECT 1
+spring.datasource.logAbandoned=true
+#Move the abandoned reaper to 1 hour for ES reindex IN-1326 IN-1327
+spring.datasource.removeAbandoned=false
+spring.datasource.removeAbandonedTimeout=3600
+
+spring.datasource.maintenance.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.maintenance.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.maintenance.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.maintenance.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.maintenance.password=<%= node['af']['activfoundbpass'] %>
+spring.datasource.maintenance.initialSize=5
+spring.datasource.maintenance.minIdle=5
+spring.datasource.maintenance.maxIdle=15
+spring.datasource.maintenance.maxActive=25
+spring.datasource.maintenance.maxWait=30000
+spring.datasource.maintenance.testOnBorrow=true
+spring.datasource.maintenance.validationQuery=SELECT 1
+spring.datasource.maintenance.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.maintenance.removeAbandoned=true
+spring.datasource.maintenance.logAbandoned=true
+
+## Database Liquibase Information
+liquibase.driver=com.mysql.jdbc.Driver
+liquibase.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+liquibase.username=<%= node['af']['activfoundbuser'] %>
+liquibase.password=<%= node['af']['activfoundbpass']  %>
+
+#Liquibase context
+liquibase-contexts=<%= node['database']['contextmode']  %>
+
+## Liquibase Config section
+liquibase.config.driver=com.mysql.jdbc.Driver
+liquibase.config.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+liquibase.config.username=<%= node['af']['activfoundbuser'] %>
+liquibase.config.password=<%= node['af']['activfoundbpass']  %>
+liquibase.threads=5
+liquibase.enabled=false
+
+# New Properties for Elasticsearch REST IN-1054
+<% unless node.chef_environment.include?("local") -%>
+elasticsearch.rest.url=<%= node['elasticsearch']['rest_url'] %>
+<% else -%>
+elasticsearch.rest.url=http://127.0.0.1:9200
+<% end -%>
+elasticsearch.rest.maxTotalConnection=<%= node['elasticsearch']['rest_max_conn'] %>
+elasticsearch.rest.maxTotalConnectionPerHost=<%= node['elasticsearch']['rest_max_perhost'] %>
+elasticsearch.tenant.reindex.threads=3
+elasticsearch.drive.types.reindex.threads=1
+elasticsearch.drive.reindex.threads=2
+elasticsearch.drive.reindex.bulk.size=5000
+elasticsearch.readTimeout=30000
+elasticsearch.connectionTimeout=10000
+
+# New Properties for redis management from Elasticache service
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+
+# RabbitMQ Properties IN-1155
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+
+## FoundationConfig
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=5
+spring.datasource.foundationConfig.maxIdle=5
+spring.datasource.foundationConfig.maxActive=20
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+liquibase.config.defaultSchema=<%= node['fconfig']['founconfigdb'] %>
+## FoundationConfig - Multi-Tenancy
+tenant.default.schema=<%= node['af']['activfoundb'] %>
+<% if node.chef_environment == "local" -%>
+tenant.default.tenant=localhost
+<% else -%>
+<% @tenants.each do |tenant| -%>
+     <% next if tenant["tenant_config.is_default_tenant"] == "\u0000" -%>
+        <% tenant_header = tenant["tenant_header"] -%>
+tenant.default.tenant=<%= tenant_header %>
+<% end -%>
+<% end -%>
+liquibase.defaultSchema=<%= node['af']['activfoundb'] %>
+
+# Liquibase for Analytics IN-1117
+liquibase.analytics.driver=com.mysql.jdbc.Driver
+liquibase.analytics.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['anaschemaname'] %>
+liquibase.analytics.username=<%= node['dwh']['anausername'] %>
+liquibase.analytics.password=<%= node['dwh']['anauserpass'] %>
+liquibase.analytics.enabled=true
+
+spring.datasource.analytics.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.analytics.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['anaschemaname'] %>
+spring.datasource.analytics.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.analytics.username=<%= node['dwh']['anausername'] %>
+spring.datasource.analytics.password=<%= node['dwh']['anauserpass'] %>
+spring.datasource.analytics.minIdle=5
+spring.datasource.analytics.maxIdle=5
+spring.datasource.analytics.maxActive=10
+spring.datasource.analytics.maxWait=30000
+spring.datasource.analytics.testOnBorrow=true
+spring.datasource.analytics.validationQuery=SELECT 1
+spring.datasource.analytics.defaultCatalog=<%= node['dwh']['anaschemaname'] %>
+spring.datasource.analytics.removeAbandoned=true
+spring.datasource.analytics.logAbandoned=true
+
+# Liquibase section for DataWarehouse IN-1118
+liquibase.datawarehouse.driver=com.mysql.jdbc.Driver
+liquibase.datawarehouse.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['dwhschemaname'] %>
+liquibase.datawarehouse.username=<%= node['dwh']['supusername'] %>
+liquibase.datawarehouse.password=<%= node['dwh']['supuserpass'] %>
+liquibase.datawarehouse.enabled=true
+spring.datasource.datawarehouse.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.datawarehouse.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['dwhschemaname'] %>
+spring.datasource.datawarehouse.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.datawarehouse.username=<%= node['dwh']['supusername'] %>
+spring.datasource.datawarehouse.password=<%= node['dwh']['supuserpass'] %>
+spring.datasource.datawarehouse.minIdle=5
+spring.datasource.datawarehouse.maxIdle=5
+spring.datasource.datawarehouse.maxActive=10
+spring.datasource.datawarehouse.maxWait=30000
+spring.datasource.datawarehouse.testOnBorrow=true
+spring.datasource.datawarehouse.validationQuery=SELECT 1
+spring.datasource.datawarehouse.defaultCatalog=<%= node['dwh']['dwhschemaname'] %>
+spring.datasource.datawarehouse.removeAbandoned=true
+spring.datasource.datawarehouse.logAbandoned=true
+
+#Elasticsearch Search Engine
+elasticsearch.cluster=<%= node['elasticsearch']['cluster']['name'] %>
+elasticsearch.members=<%= @elasticnodes %>
+elasticsearch.index=<%= "foundation#{node.chef_environment}" %>
+elasticsearch.staff.reindex.threads=<%= node["elasticsearch"]["staffreindexthreads"] %>
+elasticsearch.staff.reindex.bulk.size=<%= node["elasticsearch"]["staffreindexbulk"] %>
+elasticsearch.enable=true
+elasticsearch.school.reindex.bulk.size=2000
+
+# IN-1392 Property to identify environment for lock files
+environment.name=<%= node.chef_environment %>
+
+# IN-1545 Authserver user account and profile migration properties
+<% if node.chef_environment == 'local' %>
+promethean.oauth.baseUrl=http://localhost/authserver
+<% else %>
+promethean.oauth.baseUrl=https://<%= node['apache']['apacheservername'] %>/authserver
+<% end %>
+authserver.user.migration.tenant.threads=1
+authserver.user.migration.threads=3
+authserver.user.migration.bulk.size=100
+authserver.user.migration.pagesize=2000
+promethean.oauth.client.key=<%= node['af']['afclientid'] %>
+promethean.oauth.client.secret=<%= node['af']['afclientsecret'] %>

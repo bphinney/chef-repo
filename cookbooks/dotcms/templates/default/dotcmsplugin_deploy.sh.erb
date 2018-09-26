@@ -1,0 +1,12 @@
+#!/bin/bash
+service dotcms stop
+/opt/dotCMS/bin/undeploy-plugins.sh
+rm -rf /opt/dotCMS/plugins/com.promethean.dotcms
+cp -r /opt/storage/com.promethean.dotcms /opt/dotCMS/plugins
+/bin/cp -rf /opt/storage/webapps /opt/dotCMS/dotserver/tomcat-7.0.54
+/opt/dotCMS/bin/deploy-plugins.sh
+rm -rf /opt/storage/com.promethean.dotcms
+rm -rf /opt/storage/webapps
+chown -R tomcat. /opt/dotCMS/plugins
+chown -R tomcat. /opt/dotCMS/dotserver/tomcat-7.0.54
+service dotcms start

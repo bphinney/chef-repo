@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Java environment options for Stagemonitor client
+# Sourced through /opt/tomcat/bin/setenv.sh
+
+# Initiates Aspectj for load-time weaving
+export CATALINA_OPTS="$CATALINA_OPTS -javaagent:/opt/stagemonitor/lib/aspectjweaver-1.8.4.jar"
+
+# Source the AspectJ load-time configuration file
+export CATALINA_OPTS="$CATALINA_OPTS -Dorg.aspectj.weaver.loadtime.configuration=file:/opt/stagemonitor/lib/aop.xml"
+
+# Exclude unnecessary classloaders
+export CATALINA_OPTS="$CATALINA_OPTS -Daj.weaving.loadersToSkip=sun.misc.Launcher$\ExtClassLoader,sun.misc.Launcher$\AppClassLoader,sun.reflect.misc.MethodUtil,javax.management.remote.rmi.NoCallStackClassLoader,org.apache.catalina.loader.StandardClassLoader"
+
+# Dedicated properties file for p6spy for stagemonitor jdbc aspect
+# Not used, but prevents an "access denied" error on start
+export CATALINA_OPTS="$CATALINA_OPTS -Dp6spy.config.logfile=/opt/tomcat/logs/spy.log -Dp6spy.config.append=true"

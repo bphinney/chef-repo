@@ -1,0 +1,264 @@
+#!/bin/bash
+# This script is used to build a RPM package and then deploy that package onto 
+# a target server.
+# Requirements to follow
+#Static variables
+repo="http://10.0.1.109"
+ssh_command="ssh -q -i /opt/bamboo-data/.ssh/ngroot.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+if [ -f /tmp/rpm-appnames.txt ]; then rm -f /tmp/rpm-appnames.txt; fi
+if [ -f /tmp/rpm-versions.txt ]; then rm -f /tmp/rpm-versions.txt; fi
+app_names="<%= @appnames %>"
+for i in `echo "$app_names"`; do
+	echo $i | cut -d "|" -f1 >> /tmp/rpm-appnames.txt
+	app_name=`echo $i | cut -d "|" -f1`
+	app_version=`echo $i | cut -d "|" -f2`
+	echo "$app_name|$app_version" >> /tmp/rpm-versions.txt
+done
+applications=`cat /tmp/rpm-appnames.txt`
+application_names=`echo -e "$applications"`
+
+data_check(){
+
+if [ "$version" == "" -o "$application_name" == "" ]; then
+	echo "This command requires application name, version."; exit 1
+elif [ "$command_function" == "deploy" -o "$command_function" == "all" ] && [ "$target_host" == "" ]; then
+	echo "To deploy an application, you need to provide a target host option to execute this command."; exit 1 
+fi
+
+
+# Version check and confirm echo.
+version_check=`echo $version | grep "-"`
+	if [ "$version_check" == "" ]; then
+		echo "Version must be in the form of branch-build, i.e. 0.7.2-12, please try again."; exit 1
+	fi
+branch=`echo $version | cut -d "-" -f1`
+build=`echo $version | cut -d "-" -f2`
+echo "Version is $branch-$build"
+
+app_name_check
+}
+
+#Function to grab the name and attribute from the changing data file.
+app_name_check(){
+
+name_version=`grep "$application_name\|" /tmp/rpm-versions.txt`
+application_bin="$application_name"
+application_target="$application_name"
+app_attribute=`grep $application_name\| /tmp/rpm-versions.txt | cut -d "|" -f2`
+
+# $application_name $application_bin $application_target $app_attribute
+if [ "$name_version" == "" -o "$app_attribute" == "" ]; then
+        echo -e "$application_name is not a valid application.  Valid application names are: \n$application_names  \n  Please try again."; exit 1
+fi
+
+application_package="$application_target-$branch-$build.noarch.rpm"
+}
+
+# Function to create the working directory for grabbing files
+create_target_dir(){
+#application_binary="$branch-release/$application_target-$branch-$build.war"
+nexus_repo="$repo/artifactory/repo/$application_name-release/$application_name/$application_target/"
+repo_server="$repo/yum/$application_name/"
+application_package="$application_target-$branch-$build.noarch.rpm"
+echo "RPM package will be $application_target-$branch-$build.noarch.rpm"
+
+working_dir="/tmp/`date +%F`/$application_name"
+mkdir -p $working_dir
+#cd $working_dir; mkdir -p rpmbuild/RPMS
+#mkdir -p rpmbuild/SOURCES
+#mkdir -p rpmbuild/SPECS
+#mkdir -p rpmbuild/BUILD
+#mkdir -p rpmbuild/SRPMS
+#mkdir -p rpmbuild/BUILD
+#mkdir -p rpmbuild/BUILDROOT
+rpm_build_dir="${HOME}"
+rpm_working_dir="${HOME}/rpmbuild"
+}
+
+# Function to create the structures for RPM packaging
+create_control(){
+cd $working_dir
+# Grabs the spec file and startup script from GIT
+git clone --quiet <%=node[:git_repo] %>/chef/rpm-spec.git; if [ "$?" -gt "0" ]; then echo "Error occurred with GIT repository."; clean; exit 1; fi
+# This will parse the spec file and replace branch and build with the correct numbers
+if [ -f rpm-spec/$application_name.spec ]; then
+	cat rpm-spec/$application_name.spec | sed -e s/{branch}/$branch/g | sed -e s/{build}/$build/g > $application_name.spec.tmp; mv $application_name.spec.tmp $rpm_working_dir/SPECS/$application_name.spec
+else
+	echo "There is no spec file present for $application_name, please check your entry."; clean; exit 1
+fi
+rm -rf rpm-spec
+
+}
+
+# Now we pull the binary file
+get_binary(){
+  count=`echo $bin_url | grep -o '-' | wc -l`
+  field=$(( $count + 1 ))
+  java_filename=`echo $bin_url`
+  newfile="$java_filename"
+  newfiletype=`echo $bin_url | cut -d '-' -f$field | cut -d "." -f2`
+  echo "Renaming $newfile for bundling."
+  mv /opt/bamboo-data/storage/$bin_url $rpm_working_dir/SOURCES/$application_bin-$branch-$build.$newfiletype; if [ "$?" -gt "0" ]; then echo "Error occurred moving binary to target binary for packaging."; clean; exit 1; fi
+}
+
+# Function to build the actual RPM package
+build_package(){
+# Issue the RPM build command against the altered spec file
+cd $rpm_working_dir
+echo "Building the RPM package...."
+rpmbuild -bb --clean --rmsource --quiet SPECS/$application_name.spec; if [ "$?" -gt "0" ]; then echo "Error occurred with RPM Build."; clean; exit 1; fi
+
+# After the RPM is built, move it over to the yum repo
+echo "Moving the RPM to the yum repository."
+rsync -q -av -e ssh /opt/bamboo-data/rpmbuild/RPMS/noarch/$application_package <%= node[:yum_user] %>@<%= node[:yumrepo_host] %>:<%= node[:yum_dir] %>/testing/; if [ "$?" -gt "0" ]; then echo "Error occurred pushing to yum repo."; clean; exit 1; fi
+
+# Perform application gpg key signing (IN-1537)
+$ssh_command <%= node[:yum_user] %>@<%= node[:yumrepo_host] %> "/usr/bin/rpm-gpgsign -f <%= node[:yum_dir] %>/testing/$application_package > /dev/null 2>&1"
+
+# Now run the updaterepo process to update yum repository information
+$ssh_command <%= node[:yum_user] %>@<%= node[:yumrepo_host] %> "/usr/bin/yumrepo-update > /dev/null 2>&1"
+
+# Clean up the files used by RPM during packaging, just to be clean
+echo "Cleaning up our working directories."
+if [ -f /opt/bamboo-data/rpmbuild/RPMS/noarch/$application_package ]; then
+  rm -f /opt/bamboo-data/rpmbuild/RPMS/noarch/$application_package
+fi
+rm -f /opt/bamboo-data/rpmbuild/SOURCES/$application_name-$branch-$build.$newfiletype
+rm -rf $working_dir
+rm -rf /tmp/`date +%F`
+
+echo "Build completed and package has been moved to the repo."
+}
+
+# Function to tag new version to node for deployment.
+tag_package(){
+# Update node attribute for version
+node_name="$target_host"
+app_version="$version"
+if [ "$node_name" == "" -o "$app_attribute" == "" -o "$version" == "" ]; then
+echo "This command requires a server, application name and version number. i.e. $0 10.0.1.49 registration-service 1.0.0-14.  Please try again."; exit 1
+
+# Check that target_host is a valid node name
+node_check=`knife node list | grep $node_name`
+if [ "$node_check" == "" ]; then
+        echo "$target_host is not a valid chef node name, please check your target as a chef node update is not possible with this target."; exit 1
+fi
+
+else
+
+update_command="nodes.find(:name => "\'"$node_name"\'") {|n| n.set["\'"$app_attribute"\'"] = "\'"$app_version"\'"; n.save }"
+        knife exec -E "$update_command"; if [ "$?" -gt "0" ]; then echo "Update version command failed."; exit 1; fi
+        #update_version.sh $node_name $app_attribute $app_version ; if [ "$?" -gt "0" ]; then echo "Update version command failed."; exit 1; fi
+fi
+}
+
+# Function to execute a chef run to implement a new tag version.
+execute_tag(){
+# Execute chef client to perform an update on the server.
+$ssh_command root@$target_host "yum clean all;sleep 30; chef-client"
+
+}
+
+
+# Function to deploy the package to a target server
+deploy_package(){
+# Deploy the package
+echo "$application_package will be deployed."
+# Tag chef with updated version number
+tag_package
+
+# Execute chef client on target
+execute_tag
+
+}
+
+promote(){
+
+# This will promote a build from the QA (Testing) repository to the Certified Software (Release) repository.
+app_target="$application_name"
+app_version="$version"
+$ssh_command <%= node[:yum_user] %>@<%= node[:yumrepo_host] %> "rsync -av <%= node[:yum_dir] %>/testing/$application_target-$version.noarch.rpm <%= node[:yum_dir] %>/release/$application_target-$version.noarch.rpm; sudo yumrepo-update"
+echo "Version has been promoted."
+}
+
+clean(){
+if [ -f $rpm_working_dir/RPMS/noarch/$application_package ]; then 
+   rm -f $rpm_working_dir/RPMS/noarch/$application_package
+fi
+if [ -f $rpm_working_dir/SOURCES/$application_name-$branch-$build.$newfiletype ]; then
+   rm -f $rpm_working_dir/SOURCES/$application_name-$branch-$build.$newfiletype
+fi
+if [ -f $rpm_working_dir/SPECS/$application_name.spec ]; then
+   rm -f $rpm_working_dir/SPECS/$application_name.spec
+fi
+if [ ! -d /opt/bamboo-data/storage ]; then
+   mkdir -p /opt/bamboo-data/storage
+fi
+
+}
+
+command_line(){
+if [ "$command_function" == "package" ]; then
+  	data_check
+  	create_target_dir
+       	create_control
+       	get_binary
+       	build_package
+       	clean
+       elif [ "$command_function" == "deploy" ]; then
+       	data_check
+       	deploy_package
+	clean
+       elif [ "$command_function" == "tag" ]; then
+	data_check
+	tag_package
+	clean
+       elif [ "$command_function" == "execute" ]; then
+	data_check
+	execute_tag
+	clean
+       elif [ "$command_function" == "all" ]; then
+	data_check
+	create_target_dir
+	create_control
+	get_binary
+	build_package
+	deploy_package
+	clean
+       elif [ "$command_function" == "promote" ]; then
+	data_check
+	promote
+	clean
+       elif [ "$command_function" == "" ]; then
+   	echo "Need to provide a function and options, i.e. $0 -f package|deploy|tag|execute|all -a application_name -v version [ -t target_host ] [ -j java_binary_url ]."
+fi
+}
+
+while getopts "f:a:v:t:j:" opt; do
+	case $opt in
+		f) command_function="$OPTARG"
+			echo "$command_function"
+			;;
+		a)	#application_name=$2
+			application_name="$OPTARG"
+			;;
+		v)
+	   		version="$OPTARG"
+	 		#version=$3
+  			;;
+		t)
+			# Used for Deployments
+			target_host="$OPTARG"
+  			echo "If Deployment is requested, it will occur on $target_host"
+			;;
+		j)
+			bin_url="$OPTARG"
+			;;
+	esac
+done
+
+command_line
+
+		
+  

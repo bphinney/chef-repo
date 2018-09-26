@@ -1,0 +1,67 @@
+#! /bin/bash
+TIMESTAMP=$(date +"%F-%s")
+
+CONTENT_DIR="/opt/tomcat/content"
+TMP_DIR="/tmp/store"
+
+# Writing drive contents requires sudo
+if [[ $UID != 0 ]]; then
+    echo "Please run db-restore with sudo."
+    exit 1
+fi
+
+# Use remote-deploy configuration to determine branch
+BRANCH=$(cat /opt/storage/branch.txt)
+if [ -z "$BRANCH" ]; then
+    echo "Initial branch configuration is required, please run remote-deploy first."
+    echo "Exiting..."
+    exit
+else
+    BACKUP_DIR="/vagrant/db-backup/$BRANCH"
+fi
+
+MYSQL_USER="root"
+MYSQL_PASSWORD="root"
+MYSQL="/usr/bin/mysql"
+MYSQLDUMP="/usr/bin/mysqldump"
+
+# Check for shared directory
+if [ ! -d "/vagrant" ]; then
+    echo "Export requires shared /vagrant directory."
+    echo "Ensure vagrant vbguest plugin is installed and shared directory is available."
+    echo "Exiting..."
+    exit
+fi
+
+# Create temporary and backup store path
+mkdir -p $TMP_DIR $BACKUP_DIR
+
+# Locally store mysql credentials
+sqlcreds=$TMP_DIR/vagrant.cnf
+echo "[client]" > $sqlcreds
+echo "user=$MYSQL_USER" >> $sqlcreds
+echo "password=$MYSQL_PASSWORD" >> $sqlcreds
+echo "host=localhost" >> $sqlcreds
+
+# List Content directory, excluding global resource pack content
+content=$(find $CONTENT_DIR -mindepth 1 -type d | grep -Ev "(global|import)";)
+
+# List Foundation Schemas
+databases=$($MYSQL --defaults-extra-file=$sqlcreds -e "SHOW DATABASES;" | grep -Ev "(Database|information_schema|performance_schema|mysql)")
+
+# Dump all Foundation schemas
+echo "Backing Up Schemas for $BRANCH"
+for db in $databases; do
+    $MYSQLDUMP --defaults-extra-file=$sqlcreds $db > "$TMP_DIR/$db.dump"
+done
+
+db_schemas=$(find $TMP_DIR -name *.dump)
+
+# Tar all contents into single file
+echo "Backing Up Contents Directory"
+tar -czf $BACKUP_DIR/vagrant-db-backup_$TIMESTAMP.tar.gz $db_schemas $content > /dev/null
+
+# Remove tmp content
+rm -rf $TMP_DIR
+
+echo "New file content/schema backup saved in $BACKUP_DIR shared system directory."

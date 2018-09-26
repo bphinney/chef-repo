@@ -1,0 +1,28 @@
+# This sets the allow/deny method based on version
+<% if node['platform_version'].to_i == "7" -%>
+  <% allow_method = "Require IP" -%>
+  <% deny_method = "Require not ip" -%>
+  <% deny_all = "Require all denied" -%>
+<% else -%>
+  <% allow_method = "Allow from" -%>
+  <% deny_method = "Deny from" -%>
+  <% deny_all = "Deny from all" -%>
+<% end -%>
+
+LoadModule	jk_module	modules/mod_jk.so
+JkWorkersFile	conf.d/activfoundation.workers
+JkLogFile	logs/mod_jk.log
+JkLogLevel	info
+JkLogStampFormat	"[%a %b %d %H:%M:%S %Y]"
+JkRequestLogFormat "%w %V %T"
+
+# Add Shared Memory
+JkShmFile	logs/jk.shm
+
+# Add jkstatus for managing runtime data
+<Location /jkstatus/>
+    JkMount status
+    Order deny,allow
+    <%= deny_all %>
+    <%= allow_method %> 127.0.0.1
+</Location>   

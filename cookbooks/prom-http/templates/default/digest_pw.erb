@@ -1,0 +1,6 @@
+<% if node['site_password'].nil? || node['site_password'].empty? -%>
+causer:RESTRICTED:bad099bfa0e28f3609ff85756e962362
+prometheanuser:RESTRICTED:a75215ba947689668f32c299bd7506d0
+<% else -%>
+<%= node['site_password'] %>
+<% end -%>

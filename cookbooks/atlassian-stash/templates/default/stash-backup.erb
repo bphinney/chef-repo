@@ -1,0 +1,13 @@
+#!/bin/sh
+MAILTO=""
+# Stash DB backup
+/usr/bin/mysqldump -u stash_user -pstash_pass --host=atlassian.cum0ld45s8ef.us-east-1.rds.amazonaws.com stash_db > /backup/stash/db/stash_db.backup
+
+# Stash data backup
+/usr/bin/rsync -a --delete /opt/git/* /backup/stash/data/
+
+# Artifactory DB Backup
+/usr/bin/mysqldump -u art_user -part_pass --host=atlassian.cum0ld45s8ef.us-east-1.rds.amazonaws.com art_db > /backup/artifactory/db/art_db.backup
+
+# Artifactory Data backup
+/usr/bin/rsync -a --delete /opt/jfrog/var/opt/jfrog/artifactory/data/* /backup/artifactory/data/

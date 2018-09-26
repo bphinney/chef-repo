@@ -1,0 +1,10 @@
+default['applications']['stagemonitor_version'] = '0.0.0-1'
+default['applications']['tools']['jmxtrans_version'] = '0.0.0-1'
+default['stagemonitor']['stagemonitor_client'] = 'false'
+default['stagemonitor']['client_active'] = 'false'
+default['metrics_server']['host_url'] = 'metrics.localhost'
+default['metrics_server']['grafana_one_version'] = '0.0.0-0'
+default['metrics_server']['grafana_two_version'] = '0.0.0-0'
+default['metrics_server']['kibana_version'] = '0.0.0-0'
+default['metrics_server']['elasticsearch_version'] = '0.0.0-0'
+default['metrics_server']['metrics_role'] = 'primary' # not used yet

@@ -1,0 +1,15 @@
+#!/bin/bash
+if [[ $1 != "OK" ]]; then
+  if [[ $3 != "SOFT" ]]; then
+    if [[ `echo $4 | grep -o 'unsynched entries' | head 1` != 'unsynched entries' ]]; then
+      yes | /usr/sbin/gluster volume stop $2 > /dev/null
+      echo "OK - `/usr/sbin/gluster volume start $2`"
+    else
+      echo "OK - Non-critical issue detected, no remount initiated."
+    fi
+  else
+    echo "OK - Non-critical issue detected, no remount initiated."
+  fi
+else
+  echo "OK - Issue resolved, no remount needed."
+fi

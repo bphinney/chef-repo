@@ -1,0 +1,9 @@
+/var/log/glusterfs/cli.log /var/log/glusterfs/cmd_history.log /var/log/glusterfs/etc-glusterfs-glusterd.vol.log  /var/log/glusterfs/glfsheal-content*.log /var/log/glusterfs/glfsheal-sites.log /var/log/glusterfs/gluster_export_backup.log /var/log/glusterfs/glustershd.log /var/log/glusterfs/nfs.log {
+ daily
+ delaycompress
+ compress
+ missingok
+ postrotate
+     /usr/bin/killall -HUP glusterfs 2>/dev/null || true
+ endscript
+}

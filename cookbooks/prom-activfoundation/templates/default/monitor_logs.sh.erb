@@ -1,0 +1,27 @@
+#!/bin/bash
+loglist='/opt/tomcat/logs/activfoundation.log /opt/tomcat/logs/catalina.out'
+emaillist="$*"
+
+for logfile in `echo ${loglist}`; do
+
+  if [ ! -f ${logfile}._rlen ]; then
+    echo "1" > ${logfile}._rlen
+  fi
+
+  if [ "$(( `cat ${logfile} | wc -l` + 1 ))" -lt "$(( `cat ${logfile}._rlen` ))" ]; then
+    echo "1" > ${logfile}._rlen
+  fi
+
+  notify=`tail -n+\`cat ${logfile}._rlen\` ${logfile} | grep -i 'severe' | grep -v leak`
+
+  [[ "$notify" == '' ]] && {
+    check='OK'
+  } || {
+    for email in `echo ${emaillist}`; do
+      echo "$notify" | mail -s "SEVERE found in ${logfile}" "${email}"
+    done
+  }
+
+  echo $(( `wc -l ${logfile} | cut -f1 -d" "` + 1 )) > ${logfile}._rlen
+
+done

@@ -1,0 +1,93 @@
+#!/opt/chef/embedded/bin/ruby -W0
+######################################################################
+# Promethean Instance Volume Snapshot Tool                          ##
+#                                                                   ##
+# Copyright Promethean World Inc. 2015                              ##
+######################################################################
+require 'optparse'
+require 'aws-sdk'                  # Aws SDK v2 gem
+require 'net/http'                 # For HTTP Parsing
+
+$aws_ec2_region        = `curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document |grep region|awk -F: '{print $2}' | cut -d'"' -f 2`.strip!
+$aws_access_key_id     = "<%= @access_key_id %>"
+$aws_secret_access_key = "<%= @secret_access_key %>"
+$retention             = <%= @retention %>
+$hostname              = `hostname`.strip! 
+
+# Aws SDK v2 Credentials
+Aws.config.update({
+  region: $aws_ec2_region,
+  credentials: Aws::Credentials.new($aws_access_key_id, $aws_secret_access_key),
+})
+
+p $aws_ec2_region
+
+ec2 = Aws::EC2::Resource.new
+
+# Get AWS instance_id and define instance_id attribute
+metadata_fetch_1 = 'http://169.254.169.254/latest/meta-data/'
+instance_id = Net::HTTP.get( URI.parse( metadata_fetch_1 + 'instance-id' ) )
+
+p "Instance-ID: #{instance_id}"
+
+# Extrapolate the volume_ids that are associated with the instance block device.
+volume_id = []
+device_list = ec2.instances
+device_list.each do |inst|
+  if inst.instance_id == instance_id
+    inst.block_device_mappings.each do |i|
+      volume_id << i["ebs"]["volume_id"]
+    end
+  end
+end
+
+# Create Snapshots for the Chef-Server
+volume_id.each do |id|
+  p "Creating new snapshot for: #{id} on #{$hostname}"
+  vsnapshot = ec2.create_snapshot({
+                  volume_id: "#{id}",
+                  description: "#{$hostname}:(#{instance_id}):Volume=>#{id}:Frequency=><%= @frequency %>"
+                  })
+
+   # Tag the snapshot with the hostname
+   ec2.create_tags({
+             resources: [vsnapshot.id], # required
+             tags: [ # required
+                  {
+                    key: "Name",
+                    value: "#{$hostname}",
+                 },
+               ],
+             })
+end
+
+# Delete snapshots by volume-id, retention setting, and date (oldest)
+volume_id.each do |id|
+  $snaps = ec2.snapshots({
+               filters: [
+                 {
+                   name: "tag-value",
+                   values: ["#{$hostname}"],
+                 },
+                 {
+                   name: "volume-id",
+                   values: ["#{id}"],
+                 },
+               ],
+             })
+
+  $volume_snaps = []
+  $snapshots_to_retain = []
+
+  $snaps.each { |foo| $volume_snaps << foo.id }
+  $recent_snaps = $snaps.sort_by { |snap| snap.start_time }.reverse[0, $retention]
+  $recent_snaps.each { |foo| $snapshots_to_retain << foo.id }
+  $snapshots_to_purge = $volume_snaps - $snapshots_to_retain
+
+  $snaps.each do |shot|
+    if $snapshots_to_purge.include?(shot.id)
+      p "Removing deprecated snapshot #{shot.id} for #{$hostname}"
+      shot.delete()
+    end
+  end
+end

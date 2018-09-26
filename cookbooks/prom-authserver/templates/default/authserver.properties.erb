@@ -1,0 +1,39 @@
+# Authserver Properties
+
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://<%= @mysqlserver %>/<%= @database %>
+spring.datasource.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.username=<%= @authservuser %>
+spring.datasource.password=<%= @authservpass  %>
+spring.datasource.initialSize=5
+spring.datasource.minIdle=5
+spring.datasource.maxIdle=5
+spring.datasource.maxActive=10
+spring.datasource.maxWait=30000
+spring.datasource.testOnBorrow=true
+spring.datasource.validationQuery=SELECT 1
+
+#AuthServer Liquibase connection Info
+liquibase.driver=com.mysql.jdbc.Driver
+liquibase.url=jdbc:mysql://<%= @mysqlserver %>/<%= @database %>?useUnicode=true&characterEncoding=UTF-8
+liquibase.username=<%= @authservuser %>
+liquibase.password=<%= @authservpass %>
+liquibase-contexts=<%= @contextmode %>
+#list all the whitelisted domains
+csp.frame.ancestors=<%= @frame_ancestors %>
+#AuthServer URL
+<% if node.chef_environment == 'local' %>
+authserver.issuer.url=http://localhost/authserver/
+authserver.issuer.secured=false
+<% else %>
+authserver.issuer.url=https://<%= @issuer_url %>/authserver/
+authserver.issuer.secured=true
+<% end %>
+
+#Environment Name
+environment.name=<%= node.chef_environment %>
+
+#Authserver Custom Avatars and File Services
+fileservice.basedir=<%= node['authserver']['fileservice_parent_dir'] %>/<%= node['authserver']['custom_avatar_dir'] %>/
+avatar.custom.maxSize=<%= node['authserver']['avatar_max_size'] %>
+classflow.url=https://<%= node['apache']['apacheservername'] %>/classflow

@@ -1,0 +1,77 @@
+#NameVirtualHost <%= node['ipaddress'] %>:80
+
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    DocumentRoot /opt/www/prometheankb
+    ServerName <%= node['prometheankb']["prometheankbservername"] %>
+<% unless node['prometheankb']['prometheankbalias'].nil? || node['prometheankb']['prometheankbalias'].empty? -%>
+    ServerAlias <%= node['prometheankb']['prometheankbalias'] %> 
+<% else -%>
+    ServerAlias <%= node['prometheankb']["prometheankbservername"] %> 
+<% end -%>
+
+# Server Alias for all the redirect subdomains
+    ServerAlias us.prometheankb.com uk.prometheankb.com apac.prometheankb.com eues.prometheankb.com es.prometheankb.com de.prometheankb.com it.prometheankb.com fr.prometheankb.com nl.prometheankb.com pt.prometheankb.com cn.prometheankb.com ru.prometheankb.com
+
+
+    CustomLog logs/prometheankb_access.log combined
+    ErrorLog logs/prometheankb_error.log
+
+    FileETag -INode +MTime +Size
+
+    RewriteEngine On
+# Rewrite rules for egain.net
+    RewriteCond %{HTTP_HOST} uk.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1022&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=en&COUNTRY=us [L,R]
+    RewriteCond %{HTTP_HOST} us.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1024&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=en&COUNTRY=us [L,R]
+    RewriteCond %{HTTP_HOST} apac.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1025&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=en&COUNTRY=us [L,R]
+    RewriteCond %{HTTP_HOST} eues.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1028&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=es&COUNTRY=es [L,R]
+    RewriteCond %{HTTP_HOST} es.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1029&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=es&COUNTRY=es [L,R]
+    RewriteCond %{HTTP_HOST} de.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1030&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=de&COUNTRY=de [L,R]
+    RewriteCond %{HTTP_HOST} it.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1020&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=it&COUNTRY=it [L,R]
+    RewriteCond %{HTTP_HOST} fr.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1033&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=fr&COUNTRY=fr [L,R]
+    RewriteCond %{HTTP_HOST} nl.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1035&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=sv&COUNTRY=sv [L,R]
+    RewriteCond %{HTTP_HOST} pt.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1016&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=pt&COUNTRY=pt [L,R]
+    RewriteCond %{HTTP_HOST} cn.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1031&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=da&COUNTRY=da [L,R]
+    RewriteCond %{HTTP_HOST} ru.prometheankb.com
+    RewriteRule ^/$ http://ems02006.egain.net/system/selfservice.controller?CONFIGURATION=1066&PARTITION_ID=1&CMD=STARTPAGE&USERTYPE=1&LANGUAGE=ru&COUNTRY=ru [L,R]
+# End Rewrite Rules for egain.net
+
+    RewriteCond %{REQUEST_URI} ^/$ 
+    RewriteRule ^/$ /prometheankb [L,R]
+<% if node['prometheankb']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+
+Alias /prometheankb	/opt/www/prometheankb
+<Directory "/opt/www/prometheankb">
+    Options -Indexes
+    DirectoryIndex index.htm
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+<% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+    AuthDigestDomain /opt/www/prometheankb https://<%= node['prometheankb']["prometheankbservername"] %>/prometheankb
+
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+
+</Directory>
+
+</VirtualHost>
+

@@ -1,0 +1,33 @@
+#NameVirtualHost <%= node['ipaddress'] %>:80
+
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    DocumentRoot /opt/www/activwallsystem
+    ServerName <%= node['activwallsystem']["aw_server"] %>
+<% unless node['activwallsystem']['aw_alias'].nil? || node['activwallsystem']['aw_alias'].empty? -%>
+    ServerAlias <%= node['activwallsystem']['aw_alias'] %>
+<% else -%>
+    ServerAlias <%= node['activwallsystem']["aw_server"] %>
+<% end -%>
+
+    CustomLog logs/activwallsystem_access.log combined
+    ErrorLog logs/activwallsystem_error.log
+    
+    FileETag -INode +MTime +Size
+
+    RewriteEngine On
+
+# Redirect to www
+    RewriteCond %{HTTP_HOST} ^activwallsystem\.com [NC]
+    RewriteRule ^(.*)$ http://www.activwallsystem.com$1 [L,R=301,NC]
+
+<% if node['activwallsystem']['aw_sslredirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% else -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} https
+    RewriteRule !/status http://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+
+</VirtualHost>
+

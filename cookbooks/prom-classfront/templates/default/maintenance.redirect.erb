@@ -1,0 +1,7 @@
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !/maintenance
+RewriteCond %{REQUEST_URI} !/activfoundation
+RewriteCond %{HTTP_HOST} !<%= node['apache']['maintenance_bypass'] %> [NC]
+RewriteCond %{HTTP_HOST} !(.*-bypass.*) [NC]
+RewriteCond %{HTTP_HOST} !(.*resourcepack.*) [NC]
+RewriteRule $ /maintenance/index.html [R=302,L]

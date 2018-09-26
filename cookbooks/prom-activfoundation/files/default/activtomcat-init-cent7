@@ -1,0 +1,16 @@
+# CentOS 7 Tomcat/Java7-8 config file
+# Had to split these out to get around an issue with environment
+[Unit]
+Description=ActiveTomcat Linux Service Controller Script
+After=network.target
+
+[Service]
+Type=forking
+Restart=on-abort
+PIDFile=/var/run/tomcat/tomcat.pid
+ExecStart=/opt/tomcat/bin/activtomcat start
+ExecStop=/opt/tomcat/bin/activtomcat stop
+ExecReload=/opt/tomcat/bin/activtomcat restart
+
+[Install]
+WantedBy=multi-user.target

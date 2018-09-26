@@ -1,0 +1,102 @@
+#!/opt/chef/embedded/bin/ruby -W0
+
+# General definitions, can be switched out for data-driven values.
+
+CFG_WIKIUSER = 'administrator'
+CFG_WIKIPASS = 'n3WP7om3th3an1'
+CFG_WIKIURL = "<%= node['jumpbox']['wikipage'] %>"
+CFG_DBAG = 'javadevs'
+CFG_DBITEM = 'jumpbox'
+CFG_JUMPBOX = '<%= node['jumpbox']['servername'] %>'
+CFG_USERSCAN = '/usr/local/bin/userscan.sh'
+
+# Kill it if we don't have the data bag we want to populate.
+
+oldscan = `knife data bag show #{CFG_DBAG} #{CFG_DBITEM}`.strip
+
+if "#{oldscan}" == '' then
+  puts "No '#{CFG_DBAG}/#{CFG_DBITEM}' data bag exists, did not execute."
+  abort
+end
+
+# Initialize connection to Chef data.
+
+%x(chef-client -o prom-chef::chef-api-gem)
+require 'chef-api'
+include ChefAPI::Resource
+
+ChefAPI::log_level = :fatal # Disables annoying SSL warning messages
+
+File.open(ENV['HOME']+'/.chef/knife.rb').each do |line|
+  if line.match("chef_server_url"); $client_uri = line.scan(/'([^']*)'/).join(" ");  end
+  if line.match("client_key");      $client_key = line.scan(/'([^']*)'/).join(" ");  end
+  if line.match("node_name");       $client_node = line.scan(/'([^']*)'/).join(" "); end
+end
+
+$connection = ChefAPI::Connection.new(
+  client: $client_node,
+  key:  $client_key,
+  ssl_verify: false,
+  endpoint: $client_uri
+)
+
+# Function to compare SSH keys
+def compareKeys(abuser)
+  if ! abuser.nil? || ! abuser.empty?
+    sshkey = `knife data bag show users #{abuser} 2>/dev/null |grep -w 'ssh_keys:'|cut -d':' -f2`
+  else
+    $sshkey = ''
+  end
+end
+
+# Extract the user list and keys from the wiki page(s).
+
+userlist = Hash.new('')
+CFG_WIKIURL.split(' ').each do |url|
+#  These commented items generically extract and read table data from wiki pages.
+#  puts "Wiki page #{url}"
+#  puts "----------------"
+  wikidata = `curl --silent --user #{CFG_WIKIUSER}:#{CFG_WIKIPASS} -G https://wiki.prometheanjira.com/display/OP/#{url} | sed -n '/main-content/,/div/p' | grep -oP \"<tr>(.+?)<\\\/tr>\"`.strip.gsub(/<\/?(span|label)[^>]*>/, "")
+#  wikidata.strip.split("\n").each_with_index do |tablerow,tableindex|
+#    puts "Row #{tableindex}:"
+#    tablerow.split('<td').each_with_index do |tcval,tcindex|
+#      if tcindex != 0 then
+#        puts "  Column #{tcindex}:  '#{tcval.scan(/[^>]+>([^<]+)/)}'"
+#      end
+#    end
+#  end
+  wikidata.strip.split("\n")[1..-1].each do |tablerow|
+    username = tablerow.split('<td')[1].scan(/[^>]+>([^<]+)/).first.first.gsub(/[^a-z]/,'')
+    remoteip = tablerow.split('<td')[2].scan(/[^>]+>([^<]+)/).first.first.scan(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/).first
+    sshpubkey = tablerow.split('<td')[3].scan(/[^>]+>([^<]+)/).first.first
+    if "#{username}" != '' && sshpubkey[0..7] == 'ssh-rsa ' then
+      userlist[username] = [remoteip,sshpubkey]
+    end
+  end
+end
+
+
+
+client_data = $connection.data_bags
+
+client_data.fetch(CFG_DBAG).items.each do |item|
+  $db_item = item
+  if $db_item.id == CFG_DBITEM
+   $db_item.data = userlist
+   $db_item.save!
+   puts "Data Bag '#{CFG_DBAG}/#{CFG_DBITEM}' Updated."
+  end
+end
+
+newscan = `knife data bag show #{CFG_DBAG} #{CFG_DBITEM}`.strip
+
+if oldscan != newscan then
+  userlist.each do |uname, udata|
+    result=`#{CFG_USERSCAN} #{uname} '#{udata[1]}'`.strip
+    if "#{result}" != "" then
+      puts result
+    end
+  end
+else
+  puts "No changes detected; jumpbox unchanged."
+end

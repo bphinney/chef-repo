@@ -1,0 +1,17 @@
+#!/bin/sh
+
+<% if @elastic == true -%>
+# Use elasticsearch curator to prune indices older than three days
+curator --host <%= @ip_address -%> delete indices --older-than 3 --time-unit days --timestring '%Y.%m.%d' --exclude kibana --exclude grafana
+<% end -%>
+
+<% if @carbon == true -%>
+# Remove empty directories in carbon whisper directory
+find /var/lib/carbon/whisper/ -type d -empty -delete
+
+# Remove all carbon whisper metrics that are older than three days
+find /var/lib/carbon/whisper/ -name "*.wsp" -mtime +3 -print0 | xargs -0 rm -rf
+
+# Backup Grafana 2.0 Database
+sqlite3 /www/data/grafana20/grafana.db ".backup /opt/storage/grafana_db_backup-$(date +"%F_%H%M").bak"
+<% end -%>

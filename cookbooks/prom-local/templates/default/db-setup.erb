@@ -1,0 +1,42 @@
+#!/bin/bash
+
+initial_af_schema(){
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e 'show databases;' 2>/dev/null
+  if [ $? -gt 0 ]; then
+    mysql --host=<%= node['database']['dbservername'] %> -u root -e 'SET PASSWORD FOR "root"@"%" = PASSWORD("root");'
+  else
+    echo "Initial root user appears to be setup."
+  fi
+}
+
+addtional_schemas(){
+
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e 'CREATE DATABASE IF NOT EXISTS <%= node['af']['activfoundb'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['af']['activfoundb'] %>.* TO "<%= node['af']['activfoundbuser'] %>"@"%" identified by "<%= node['af']['activfoundbpass'] %>";'
+
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e "CREATE DATABASE IF NOT EXISTS <%= node['fconfig']['founconfigdb'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['fconfig']['founconfigdb'] %>.* TO <%= node['af']['activfoundbuser'] %>@'%' IDENTIFIED BY '<%= node['af']['activfoundbpass'] %>';" 2>/dev/null
+
+  mysql --host=<%= node['dwh']['servername'] %> -u root --password=root -e "CREATE DATABASE IF NOT EXISTS <%= node['dwh']['anaschemaname'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['dwh']['anaschemaname'] %>.* TO "<%= node['dwh']['anausername'] %>"@"%" identified by '<%= node['dwh']['anauserpass'] %>';" 2>/dev/null
+
+  mysql --host=<%= node['authserver']['servername'] %> -u root --password=root -e "CREATE DATABASE IF NOT EXISTS <%= node['authserver']['database'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['authserver']['database'] %>.* TO "<%= node['authserver']['authservuser'] %>"@"%" identified by '<%= node['authserver']['authservpass'] %>';" 2>/dev/null
+
+  mysql --host=<%= node['dwh']['servername'] %> -u root --password=root -e "CREATE DATABASE IF NOT EXISTS <%= node['dwh']['dwhschemaname'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['dwh']['dwhschemaname'] %>.* TO "<%= node['dwh']['supusername'] %>"@"%" identified by '<%= node['dwh']['supuserpass'] %>'; GRANT ALL ON <%= node['dwh']['dwhschemaname'] %>.* TO "<%= node['dwh']['rousername'] %>"@"%" identified by '<%= node['dwh']['rouserpass'] %>';" 2>/dev/null
+}
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e 'CREATE DATABASE IF NOT EXISTS <%= node['parent-service']['database'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['parent-service']['database'] %>.* TO "<%= node['parent-service']['username'] %>"@"%" identified by "<%= node['parent-service']['password'] %>";'
+
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e 'CREATE DATABASE IF NOT EXISTS <%= node['notification-service']['database'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['notification-service']['database'] %>.* TO "<%= node['notification-service']['username'] %>"@"%" identified by "<%= node['notification-service']['password'] %>";'
+
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e 'CREATE DATABASE IF NOT EXISTS <%= node['store-service']['database'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['store-service']['database'] %>.* TO "<%= node['store-service']['username'] %>"@"%" identified by "<%= node['store-service']['password'] %>";'
+
+function fconfig_foundationmaint () {
+  fconfigcheck=`mysql --host=<%= node['database']['dbservername'] %> -u root --password=root <%= node['fconfig']['founconfigdb'] %> -e 'select * from user;' | grep admin`
+  if [ "$fconfigcheck" == "" ]; then
+    if ls /opt/tomcat/bin/maint/foundation-maint-*.jar 1> /dev/null 2>&1; then
+      echo "Running foundation-maint on foundationconfig"
+      sudo su - -c "java -jar /opt/tomcat/bin/maint/foundation-maint-*.jar -o liquibaseUpdate -s foundationconfig" tomcat > db-setup-execute.log 2>&1; exit 0 || echo "DB-setup failed"; exit 1
+    fi
+  fi
+}
+
+initial_af_schema
+addtional_schemas
+fconfig_foundationmaint

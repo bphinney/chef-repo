@@ -1,0 +1,131 @@
+#!/bin/bash
+# chkconfig: 345 20 80
+# description: Screenservice startup/shutdown script
+# processname: node
+#
+# Usage: (as root)
+# service $0 start
+# service $0 stop
+# service $0 status
+#
+
+# User running the screenservice process
+USER=tomcat
+# Path to screenservice install folder
+count=`echo $0 | grep -o '/' | wc -l`
+field=$(( $count + 1 ))
+app=`echo $0 | cut -d '/' -f$field` 
+
+# Path to the application
+APPLICATION_BIN=/usr/bin/node
+APPLICATION_PATH=/opt/screenservice
+PID_FILE=/opt/screenservice/$app.pid
+BIN_SCRIPT="${APPLICATION_BIN} app > ${APPLICATION_PATH}/startup.log 2>&1 &"
+
+chown -R $USER.$USER /opt/screenservice
+ 
+# source function library
+. /etc/init.d/functions
+RETVAL=0
+
+app_status_cmd(){
+APP_STATUS=`ps -ef | grep node | grep app | grep -v grep | awk '{print $2}'`
+}
+
+app_pid_cmd(){
+APP_STATUS=`ps -ef | grep node | grep app | grep -v grep | awk '{print $2}'`
+if [ "${APP_STATUS}" != "" ]; then
+  su -c "echo $APP_STATUS > $PID_FILE" $USER
+fi
+}
+
+start() {
+echo -n "Starting $app service: "
+app_status_cmd
+if [ "$APP_STATUS" != "" ]; then
+    echo "$app is already running with pid $APP_STATUS"
+else
+  cd ${APPLICATION_PATH}
+  su -c "$BIN_SCRIPT" $USER && echo_success || echo_failure
+  echo
+fi
+sleep 5
+app_pid_cmd
+}
+stop() {
+echo -n "Shutting down $app service: "
+app_status_cmd
+if [ ! -f ${PID_FILE} -a "$APP_STATUS" == "" ]; then
+  echo "There is no PID file and no process."
+elif [ "$APP_STATUS" == "" ]; then
+  echo "No App process detected."
+    if [ -f ${PID_FILE} ]; then rm -f ${PID_FILE}; fi
+else
+   su -c "kill -9 `cat ${PID_FILE}`" $USER > /dev/null && rm -rf ${PID_FILE}
+   su -c "kill -9 `ps -ef | grep phantomjs | grep -v grep | awk '{print $2}'`" $USER
+   app_status_cmd
+   if [ "$APP_STATUS" != "" ]; then
+     kill -9 $APP_STATUS && echo_success || echo_failure
+   else
+     echo_success
+   fi
+   echo
+fi
+}
+status() {
+app_status_cmd
+if [ ! -f ${PID_FILE} -o "$APP_STATUS" == "" ]; then
+  echo "$app is not running."
+else
+  app_status_cmd
+  if [ "$APP_STATUS" != "" ]; then
+    echo "$app is running with pid $APP_STATUS." 
+  else
+    echo "$app is not running."
+  fi
+fi
+}
+autocheck(){
+if [ ! -f ${PID_FILE} ]; then 
+  echo "PID File was removed."
+else
+  app_status_cmd
+  if [ "$APP_STATUS" != "" ]; then
+    echo "$app is running with pid $APP_STATUS." 
+  else
+    start
+  fi
+fi
+}
+
+clean() {
+  rm -f ${PID_FILE}
+}
+case "$1" in
+start)
+start
+;;
+stop)
+stop
+clean
+;;
+restart|reload)
+stop
+clean
+sleep 10
+start
+;;
+status)
+status
+;;
+autocheck)
+autocheck
+;;
+clean)
+clean
+;;
+*)
+echo "Usage: $0 {start|stop|restart|status|autocheck}"
+esac
+exit 0
+

@@ -1,0 +1,179 @@
+# Properties file for foundation-async
+
+# Database connection information
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+spring.datasource.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.initialSize=<%= node["jdbc"]["jdbc_initsize"] %>
+spring.datasource.minIdle=<%= node["jdbc"]["jdbc_minidle"] %>
+spring.datasource.maxIdle=<%= node["jdbc"]["jdbc_maxidle"] %>
+spring.datasource.maxActive=<%= node["jdbc"]["jdbc_maxactive"] %>
+spring.datasource.maxWait=30000
+spring.datasource.testOnBorrow=true
+spring.datasource.validationQuery=SELECT 1
+spring.datasource.removeAbandoned=true
+spring.datasource.logAbandoned=true
+
+## Database Liquibase Information
+liquibase.driver=com.mysql.jdbc.Driver
+liquibase.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+liquibase.username=<%= node['af']['activfoundbuser'] %>
+liquibase.password=<%= node['af']['activfoundbpass']  %>
+
+#Liquibase context
+liquibase-contexts=<%= node['database']['contextmode']  %>
+
+## Liquibase Config section
+liquibase.config.driver=com.mysql.jdbc.Driver
+liquibase.config.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+liquibase.config.username=<%= node['af']['activfoundbuser'] %>
+liquibase.config.password=<%= node['af']['activfoundbpass']  %>
+liquibase.enabled=false
+
+## FoundationConfig
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=5
+spring.datasource.foundationConfig.maxIdle=5
+spring.datasource.foundationConfig.maxActive=20
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+
+## FoundationConfig - Multi-Tenancy
+tenant.default.schema=<%= node['af']['activfoundb'] %>
+<% if node.chef_environment == "local" -%>
+tenant.default.tenant=localhost
+<% else -%>
+tenant.default.tenant=<%= node['apache']['apacheservername'] %>
+<% end -%>
+
+# Liquibase for Data Warehouse IN-1117
+liquibase.analytics.driver=com.mysql.jdbc.Driver
+liquibase.analytics.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['anaschemaname'] %>
+liquibase.analytics.username=<%= node['dwh']['anausername'] %>
+liquibase.analytics.password=<%= node['dwh']['anauserpass'] %>
+liquibase.analytics.enabled=true
+
+spring.datasource.analytics.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.analytics.url=jdbc:mysql://<%= node['dwh']['servername'] %>/<%= node['dwh']['anaschemaname'] %>
+spring.datasource.analytics.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.analytics.username=<%= node['dwh']['anausername'] %>
+spring.datasource.analytics.password=<%= node['dwh']['anauserpass'] %>
+spring.datasource.analytics.minIdle=5
+spring.datasource.analytics.maxIdle=5
+spring.datasource.analytics.maxActive=10
+spring.datasource.analytics.maxWait=30000
+spring.datasource.analytics.testOnBorrow=true
+spring.datasource.analytics.validationQuery=SELECT 1
+spring.datasource.analytics.defaultCatalog=<%= node['dwh']['anaschemaname'] %>
+spring.datasource.analytics.removeAbandoned=true
+spring.datasource.analytics.logAbandoned=true
+
+# Removing this section per IN-1466
+#DWH Section removed
+
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+liquibase.config.defaultSchema=<%= node['fconfig']['founconfigdb'] %>
+liquibase.defaultSchema=<%= node['af']['activfoundb'] %>
+
+# RabbitMQ Section
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.enable=true
+<% end -%>
+rabbitmq.host=<%= @rabbitmqserver %>
+rabbitmq.port=<%= @rabbitmqport %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.documentGenerate.consumers=1
+rabbitmq.addresses=<%= @rmqaddresses %>
+rabbitmq.clasflow.elasticsearch.consumers=10
+
+#resource Upload Directory for content storage
+resourceUploadDirectory=/opt/tomcat/content
+#resource Upload Directory for import storage
+importDirectory=/opt/tomcat/content/import
+<% if node['af']['content_fallback'] == 'true' -%>
+fallbackUploadDirectory=/opt/tomcat/contentback
+globalFallbackUploadDirectory=/opt/tomcat/contentback
+<% else -%>
+fallbackUploadDirectory= 
+globalFallbackUploadDirectory=
+<% end -%>
+ 
+#convert all document to PDF?
+pdf.viewer.enabled=false
+#No of threads to create when converting doc to Images per page
+doc.concurrency.thread.limit=1
+#convert pdf to Images using Aspose?
+doc.aspose.pdf.enabled=false
+aspose.license=<%= node['af']['aspose_license'] %>
+
+#Elasticsearch Search Engine
+elasticsearch.cluster=<%= node['elasticsearch']['cluster']['name'] %>
+elasticsearch.members=<%= @elasticnodes %>
+elasticsearch.index=<%= "foundation#{node.chef_environment}" %>
+elasticsearch.staff.reindex.threads=<%= node["elasticsearch"]["staffreindexthreads"] %>
+elasticsearch.staff.reindex.bulk.size=<%= node["elasticsearch"]["staffreindexbulk"] %>
+elasticsearch.enable=true
+elasticsearch.school.reindex.bulk.size=2000
+elasticsearch.drive.types.reindex.threads=2
+elasticsearch.drive.reindex.threads=2
+elasticsearch.readTimeout=30000
+elasticsearch.connectionTimeout=10000
+
+# New Properties for Elasticsearch REST IN-1054
+<% unless node.chef_environment.include?("local") -%>
+elasticsearch.rest.url=<%= node['elasticsearch']['rest_url'] %>
+<% else -%>
+elasticsearch.rest.url=http://127.0.0.1:9200
+<% end -%>
+elasticsearch.rest.maxTotalConnection=<%= node['elasticsearch']['rest_max_conn'] %>
+elasticsearch.rest.maxTotalConnectionPerHost=<%= node['elasticsearch']['rest_max_perhost'] %>
+
+#drive reindex
+elasticsearch.drive.reindex.threads=2
+elasticsearch.drive.reindex.bulk.size=5000
+
+# IN-1616
+flipchartthumbnails.job.cmdline=/usr/local/sbin/thumbnails-cmdline
+
+#DEPRECATED in version 2.2 SECTION
+jdbc.driverClassName=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+jdbc.username=<%= node['af']['activfoundbuser'] %>
+jdbc.password=<%= node['af']['activfoundbpass']  %>
+jdbc.initialSize=<%= node["jdbc"]["jdbc_initsize"] %>
+jdbc.minIdle=<%= node["jdbc"]["jdbc_minidle"] %>
+jdbc.maxIdle=<%= node["jdbc"]["jdbc_maxidle"] %>
+jdbc.maxActive=<%= node["jdbc"]["jdbc_maxactive"] %>
+jdbc.maxWait=30000
+
+#Documents Generation
+rabbitmq.classflow.documentGenerate.queuename=ha.documentGenerate
+rabbitmq.classflow.documentGenerate.error.queuename=ha.documentGenerate.error
+rabbitmq.classflow.documentGenerate.routingkey=documentGenerate.*
+rabbitmq.classflow.documentGenerate.error.routingkey=documentGenerate.error.*
+rabbitmq.classflow.exchange=classflow.topic
+
+#Aspose is used for converting Word, PowerPoint and other documents to PDF
+aspose.license=license/Aspose.Total.Product.Family.lic
+
+# END DEPRECATED SECTION
+
+# IN-1224 Properties for Intercom
+analytics.enabled=<%= node['af']['intercom_enabled'] %>
+intercom.app.id=<%= node['af']['intercom_app_id'] %>
+intercom.api.key=<%= node['af']['intercom_api_key'] %>
+intercom.secret.key=<%= node['af']['intercom_secret_key'] %>

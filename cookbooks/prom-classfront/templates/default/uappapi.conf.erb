@@ -1,0 +1,17 @@
+Alias /uappapi /opt/www/uappapi
+<Directory "/opt/www/uappapi">
+      Options -Indexes
+      AllowOverride AuthConfig Limit
+      Include conf.d/.htaccess
+
+  <% if node['apache']['security'] == "true" -%>
+      AuthType Digest
+      AuthName "RESTRICTED"
+      AuthDigestDomain /opt/www/learner https://<%= node['apache']["apacheservername"] %>/learner
+
+      AuthDigestProvider file
+      AuthUserFile /var/www/html/.digest_pw
+      Require valid-user
+  <% end -%>
+
+</Directory>

@@ -1,0 +1,172 @@
+#!/bin/bash
+
+initial_af_schema(){
+  mysql -u root --password=root -e 'show databases;' 2>/dev/null
+  if [ $? -gt 0 ]; then
+    mysql -u root -e 'SET PASSWORD FOR "root"@"localhost" = PASSWORD("root");CREATE DATABASE activfoundationlocaldemo CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON activfoundationlocaldemo.* TO "root"@"localhost";'
+  else
+    echo "Database appears to be setup."
+  fi
+}
+
+addtional_schemas(){
+  mysql --host localhost -u root --password=root -e "CREATE DATABASE IF NOT EXISTS fconfiglocaldemo;" 2>/dev/null
+}
+
+function create_datasource_table () {
+mysql --host localhost -u root --password=root -e "use fconfiglocaldemo;
+				CREATE TABLE IF NOT EXISTS datasource (id char(32) NOT NULL, 
+				driver_class_name varchar(21) NOT NULL, 
+				url varchar(150) NOT NULL, 
+				connection_properties varchar(50) NOT NULL,
+				user_name varchar(20) NOT NULL, 
+				password varchar(20) NOT NULL, 
+				initial_size int(10) NOT NULL, 
+				min_idle int(10) NOT NULL, 
+				max_idle int(10) NOT NULL,
+				max_active int(10) NOT NULL,
+				max_wait int(10) NOT NULL,
+				test_on_borrow bit(1) NOT NULL DEFAULT b'1',
+				validation_query varchar(50) NOT NULL,
+				created_on datetime NOT NULL,
+				created_by char(32) NOT NULL,
+				last_updated_on datetime NOT NULL,
+				last_updated_by char(32) NOT NULL,
+				PRIMARY KEY (id), UNIQUE KEY idx_datasource_url_UNIQUE (url) ) ENGINE=InnoDB DEFAULT CHARSET=utf8; 
+                                " 2>/dev/null
+}
+
+
+function create_tenant_config_table () {
+mysql --host localhost -u root --password=root -e "use fconfiglocaldemo;
+				CREATE TABLE IF NOT EXISTS tenant_config (id char(32) NOT NULL, 
+				datasource_id char(32) NOT NULL, 
+				schema_name varchar(64) NOT NULL, 
+				is_default_tenant bit(1) NOT NULL DEFAULT b'0', 
+				active bit(1) NOT NULL DEFAULT b'1', 
+				created_on datetime NOT NULL, 
+				created_by char(32) NOT NULL, 
+				last_updated_on datetime NOT NULL, 
+				last_updated_by char(32) NOT NULL, 
+				tenant_name varchar(150) NOT NULL, 
+				upload_directory varchar(512) DEFAULT NULL, 
+				display_name varchar(150) NOT NULL, 
+				host_url varchar(250) DEFAULT NULL, 
+				teacher_workspace_url varchar(250) DEFAULT NULL, 
+				collabserver_url varchar(250) DEFAULT NULL, 
+				PRIMARY KEY (id), 
+				UNIQUE KEY idx_tenant_config_tenant_name (tenant_name), 
+				UNIQUE KEY idx_tenant_config_uniqueness (schema_name,datasource_id),
+				UNIQUE KEY idx_tenant_config_host_url_uniqueness (datasource_id,host_url), 
+				UNIQUE KEY idx_tenant_config_teacher_workspace_url_uniqueness (datasource_id,teacher_workspace_url), 
+				KEY idx_tenant_config_schema_name (schema_name), 
+				CONSTRAINT fk_tenant_config_datasource FOREIGN KEY (datasource_id) REFERENCES datasource (id) ON DELETE NO ACTION ON UPDATE NO ACTION ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+                                " 2>/dev/null
+}
+
+guid="0a75ac09c7a14f949e02ee8a445d14f0" 
+uuid="a010f8cda6be452a95678785478c3360"
+
+function populate_local_datasource () {
+mysql --host localhost -u root --password=root -e "use fconfiglocaldemo;
+                                SET @id = '${guid}';
+                                SET @driver_class_name = 'com.mysql.jdbc.Driver';
+                                SET @url = 'jdbc:mysql://localhost/';
+                                SET @connection_properties = 'useUnicode=true;characterEncoding=UTF-8';
+                                SET @user_name = 'root';
+                                SET @password = 'root';
+                                SET @initial_size = 10;
+                                SET @min_idle = 10;
+                                SET @max_idle = 10;
+                                SET @max_active = 100;
+                                SET @max_wait = 30000;
+                                SET @test_on_borrow = 1;
+                                SET @validation_query = 'SELECT 1';
+                                SET @created_on = now();
+                                SET @created_by = 'SYSTEM';
+                                SET @last_updated_on = now();
+                                SET @last_updated_by = 'SYSTEM';
+
+                                SET @query = 'INSERT INTO datasource (id,driver_class_name,url,
+                                connection_properties,user_name,password,
+                                initial_size,min_idle,max_idle,max_active,max_wait,
+                                test_on_borrow,validation_query,
+                                created_on,created_by,last_updated_on,last_updated_by)
+                                VALUES (?, ?, ?,
+                                ?, ?, ?,
+                                ?, ?, ?, ?, ?,
+                                ?, ?,
+                                ?, ?, ?, ?)
+                                ON DUPLICATE KEY UPDATE driver_class_name=?, url=?,
+                                connection_properties=?, user_name=?, password=?,
+                                initial_size=?, min_idle=?, max_idle=?, max_active=?, max_wait=?,
+                                test_on_borrow=?, validation_query=?,
+                                last_updated_on=?,last_updated_by=?';
+
+                                PREPARE pstmt FROM @query;
+
+                                EXECUTE pstmt USING @id, @driver_class_name, @url,
+                                @connection_properties, @user_name, @password,
+                                @initial_size,@min_idle, @max_idle, @max_active, @max_wait,
+                                @test_on_borrow, @validation_query,
+                                @created_on, @created_by, @last_updated_on, @last_updated_by,
+                                @driver_class_name, @url,
+                                @connection_properties, @user_name, @password,
+                                @initial_size,@min_idle, @max_idle, @max_active, @max_wait,
+                                @test_on_borrow, @validation_query,
+                                @last_updated_on, @last_updated_by;
+
+                                DEALLOCATE PREPARE pstmt;
+                                " 2>/dev/null
+
+}
+
+function populate_local_tenant_config () {
+mysql --host localhost -u root --password=root -e "use fconfiglocaldemo;
+                                SET @id = '${uuid}';
+                                SET @display_name = 'ClassFlow Demo';
+                                SET @datasource_id = '${guid}';
+                                SET @schema_name = 'activfoundationlocaldemo';
+                                SET @is_default_tenant = 1;
+                                SET @tenant_name = 'demo.classflow.lan';
+                                SET @active = 1;
+                                SET @created_on = now();
+                                SET @created_by = 'SYSTEM';
+                                SET @last_updated_on = now();
+                                SET @last_updated_by = 'SYSTEM';
+                                SET @upload_directory = '';
+                                SET @host_url = 'http://demo.classflow.lan';
+                                SET @teacher_workspace_url = 'http://demo.classflow.lan/classflow';
+                                SET @collabserver_url = 'http://demo-collab.classflow.lan';
+
+                                SET @query = 'INSERT INTO tenant_config (id,display_name,datasource_id,schema_name,
+                                is_default_tenant,tenant_name, active,
+                                created_on,created_by,last_updated_on,last_updated_by,upload_directory,host_url,teacher_workspace_url,collabserver_url)
+                                VALUES (?, ?, ?, ?,
+                                ?, ?, ?,
+                                ?, ?, ?, ?, ?, ?, ?, ?)
+                                ON DUPLICATE KEY UPDATE display_name=?, datasource_id=?, schema_name=?,
+                                is_default_tenant=?, tenant_name=?, active=?,
+                                last_updated_on=?,last_updated_by=?,upload_directory=?,host_url=?,teacher_workspace_url=?,collabserver_url=?';
+
+                                PREPARE pstmt FROM @query;
+
+                                EXECUTE pstmt USING @id, @display_name, @datasource_id, @schema_name,
+                                @is_default_tenant, @tenant_name, @active, @created_on, @created_by, @last_updated_on, @last_updated_by, @upload_directory, @host_url, @teacher_workspace_url, @collabserver_url,
+                                @display_name, @datasource_id, @schema_name, @is_default_tenant, @tenant_name, @active,
+                                @last_updated_on, @last_updated_by, @host_url, @upload_directory, @teacher_workspace_url, @collabserver_url;
+
+                                DEALLOCATE PREPARE pstmt;
+                                " 2>/dev/null
+
+
+}
+
+initial_af_schema
+addtional_schemas
+create_datasource_table
+create_tenant_config_table
+populate_local_datasource
+populate_local_tenant_config
+
+

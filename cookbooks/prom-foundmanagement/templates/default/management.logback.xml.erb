@@ -1,0 +1,38 @@
+<included>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg \(%file:%line\) %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${catalina.base}/logs/foundation-management.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>${catalina.base}/logs/foundation-management-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- Keep 35 days worth of logs -->
+            <maxHistory>5</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 10MB -->
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg \(%file:%line\) %n</pattern>
+        </encoder>
+    </appender>
+
+
+  <% node['foundationlog']['logger_managementloglevel'].each do |logger| -%>
+    <logger name="<%= logger.split('-').last %>" level="<%= logger.split('-').first.upcase %>"/>
+  <% end -%>
+
+
+    <root level="<%= node['foundationlog']['defaultloglevel'] %>">
+        <!--appender-ref ref="STDOUT" /-->
+        <appender-ref ref="ROLLING" />
+    </root>
+</included>

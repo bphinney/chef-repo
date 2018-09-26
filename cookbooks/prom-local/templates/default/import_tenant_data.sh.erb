@@ -1,0 +1,82 @@
+#!/bin/bash
+
+####################################################################
+## BEGIN FUNCTIONS                                               ###
+####################################################################
+function schema_import() {    
+  if [[ ! -f /vagrant/activfoundation<%= @export_env -%>.sql || ! -f /vagrant/fconfig<%= @export_env -%>.sql ]]; then
+    echo "Import SQL missing."
+    exit
+  else
+    echo "- Importing Schema <%= @activfoundb -%> -" 
+    MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> activfoundation<%= @import_env -%> < /vagrant/activfoundation<%= @export_env -%>.sql 
+    MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> fconfig<%= @import_env -%> < /vagrant/fconfig<%= @export_env -%>.sql 
+  fi
+}
+
+function datasource_update() {
+  echo "- Updating datasource table -" 
+  MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> -Ae "
+    SET foreign_key_checks = 0;
+    USE fconfig<%= @import_env -%>;
+    UPDATE IGNORE datasource SET
+      id='<%= @datasource_id -%>',
+      url='jdbc:mysql://<%= @dbservername -%>/',
+      user_name='<%= @activfoundbuser -%>',
+      password='<%= @activfoundbpass -%>';
+    SET foreign_key_checks = 1;
+    "
+}
+
+function tenantconfig_update() {
+  echo "- Updating tenant_config table -" 
+   MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> -Ae "
+    SET foreign_key_checks = 0;
+    USE fconfig<%= @import_env -%>;
+    UPDATE IGNORE tenant_config SET
+      id='<%= @tenant_id -%>',
+      datasource_id='<%= @datasource_id -%>',
+      schema_name='activfoundation<%= @import_env -%>',
+      tenant_name='<%= @tenant_header -%>',
+      host_url='<%= @host_url -%>',
+      teacher_workspace_url='<%= @teacher_url -%>',
+      collabserver_url='<%= @collabserver_url -%>';
+    SET foreign_key_checks = 1;
+    "
+}
+
+function tenant_authentication_update() {
+  echo "- Updating tenant_authentication table -" 
+  oldtenant_id=`MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> -e "select tenant_config_id from fconfig<%= @import_env -%>.tenant_authentication limit 1;"|tail -1`
+  MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> -Ae "
+    SET foreign_key_checks = 0;
+    USE fconfig<%= @import_env -%>;
+    UPDATE IGNORE tenant_authentication SET
+      tenant_config_id='<%= @tenant_id -%>'
+    WHERE tenant_config_id='${oldtenant_id}';
+    SET foreign_key_checks = 1;
+    "
+}
+
+function tenant_feature_update() {
+  echo "- Updating tenant_feature table -" 
+  oldtenant_id=`MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> -e "select tenant_config_id from fconfig<%= @import_env -%>.tenant_feature limit 1;"|tail -1`
+  MYSQL_PWD="<%= @activfoundbpass -%>" mysql -u<%= @activfoundbuser -%> -h<%= @dbservername -%> -Ae "
+    SET foreign_key_checks = 0;
+    USE fconfig<%= @import_env -%>;
+    UPDATE IGNORE tenant_feature SET
+      tenant_config_id='<%= @tenant_id -%>'
+    WHERE tenant_config_id='${oldtenant_id}';
+    SET foreign_key_checks = 1;
+    "
+}
+
+####################################################################
+## BEGIN EXECUTION                                               ###
+####################################################################
+schema_import
+datasource_update
+tenantconfig_update
+tenant_authentication_update
+tenant_feature_update
+

@@ -1,0 +1,17 @@
+[/usr/local/var/log/elasticsearch/foundation_index_search_slowlog.log]
+tags: elasticsearch
+type: elasticsearch
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz
+
+[/usr/local/var/log/elasticsearch/foundation_index_indexing_slowlog.log]
+tags: elasticsearch
+type: elasticsearch
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz
+
+[/usr/local/var/log/elasticsearch/foundation.log]
+tags: elasticsearch
+type: elasticsearch
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz

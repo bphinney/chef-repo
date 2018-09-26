@@ -1,0 +1,8 @@
+JkMount                /activfoundation        loadbalancer
+JkMount                /activfoundation/*      loadbalancer
+
+# Add Location for /activfoundation to allow for blocking
+<Location /activfoundation>
+   Include conf.d/.htaccess
+</Location>
+

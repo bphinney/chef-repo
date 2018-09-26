@@ -1,0 +1,47 @@
+#
+# Copyright 2014, Promethean, Inc.
+#
+# Foundation SFTP Configutation 
+
+#LoadModule mod_sql.c
+#LoadModule mod_sql_passwd.c
+#LoadModule mod_sql_mysql.c
+#LoadModule mod_sftp.c
+#LoadModule mod_sftp_sql.c
+
+<IfModule mod_sftp.c>
+<% @foundationbags.each do |bag| -%>
+  <VirtualHost 0.0.0.0>
+        SFTPEngine on
+	Port		      <%= bag["foundationport"] -%> 
+
+        SFTPHostKey           /etc/ssh/ssh_host_rsa_key
+        SFTPHostKey           /etc/ssh/ssh_host_dsa_key
+        SFTPAuthMethods       password
+  	#UseFtpUsers          on
+  	SFTPLog               /var/log/proftpd/sftp-new.log
+  	SQLAuthenticate       off
+  	AuthOrder             mod_auth_file.c 
+  	DefaultServer         off 
+  	ServerAdmin           ops.classflow@prometheanworld.com 
+  	ServerName            "Promethean Foundation Xfer Server"
+  	Transferlog           /var/log/proftpd/foundationxfer.log
+  	DefaultRoot           ~ 
+  	AuthUserFile          <%= bag["foundationauthfile"] -%> 
+
+        AuthGroupFile         <%= bag["foundationauthgroup"] -%> 
+
+  	RequireValidShell     off
+  	CreateHome 	      on
+  	RequireValidShell     off
+  	Umask                 022
+  	allowOverwrite        on
+  	User                  nobody
+  	Group                 nobody
+  	Servername            <%= bag["foundationservername"] -%> 
+
+  	AllowOverwrite        on
+  </VirtualHost>
+<% end -%>
+</IfModule>
+

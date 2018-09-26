@@ -1,0 +1,19 @@
+#!/bin/sh
+################################################################################
+#                                                                              #
+#     "check_service stopped working, so here is something simpler."  -Wil     #
+#                                                                              #
+################################################################################
+
+svc_check=`service logstash status`
+
+[[ `echo ${svc_check} | grep -m1 -o stopped` == 'stopped' ]] && {
+  svc_code=1
+  svc_message='CRITICAL -'
+} || { 
+  svc_code=0
+  svc_message='OK -'
+}
+
+echo "${svc_message} ${svc_check}"
+exit $svc_code

@@ -1,0 +1,11 @@
+#!/bin/bash
+for i in `echo common testing release common7 special7`; do
+  if [ -f /var/lock/$i.lock ]; then
+    echo "update process already running."
+  else
+    touch /var/lock/$i.lock
+    cd /opt/yum-repo/$i; createrepo --update ./
+    rm -f /var/lock/$i.lock
+  fi
+done
+

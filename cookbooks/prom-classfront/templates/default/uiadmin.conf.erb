@@ -1,0 +1,13 @@
+################################################################
+##           UI-Admin Page, located in /management/            #
+################################################################
+<% if "test -d /opt/www/management" -%>
+  Alias /management        /opt/www/management
+<Directory "/opt/www/management">
+      Options -Indexes
+      DirectoryIndex index.html
+      AllowOverride None
+      Include conf.d/.htaccess_closed
+
+</Directory>
+<% end -%>

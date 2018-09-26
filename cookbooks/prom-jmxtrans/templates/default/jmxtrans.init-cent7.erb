@@ -1,0 +1,16 @@
+[Unit]
+Description=jmxtrans program control script for tomcat
+After=network.target
+
+[Service]
+Environment='config=/opt/jmxtrans/jmxtrans.json'
+ExecStart=/opt/jmxtrans/jmxtrans.sh start $config
+ExecStop=/opt/jmxtrans/jmxtrans.sh stop
+User='tomcat'
+Group='tomcat'
+PIDFile=/var/run/jmxtrans.pid
+RestartSec='2'
+Restart=on-abort
+
+[Install]
+WantedBy-multi-user.target

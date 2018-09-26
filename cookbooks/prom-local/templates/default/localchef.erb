@@ -1,0 +1,2 @@
+## Allow localuser to run chef-client
+<%= node['local']['localusername'] %> ALL=(root) NOPASSWD: /usr/bin/chef-client

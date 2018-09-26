@@ -1,0 +1,71 @@
+#!/opt/chef/embedded/bin/ruby -W0
+
+gem 'chef-api', '>= 0.5.1'
+require 'chef-api'
+include ChefAPI::Resource
+
+ChefAPI::log_level = :fatal # Disables annoying SSL warning messages
+
+File.open(ENV['HOME']+'/.chef/knife.rb').each do |line|
+  if line.match("chef_server_url"); $client_uri = line.scan(/'([^']*)'/).join(" ");  end
+  if line.match("client_key");      $client_key = line.scan(/'([^']*)'/).join(" ");  end
+  if line.match("node_name");       $client_node = line.scan(/'([^']*)'/).join(" "); end
+end
+
+$connection = ChefAPI::Connection.new(
+  client: $client_node,
+  key:  $client_key,
+  ssl_verify: false,
+  endpoint: $client_uri
+)
+
+old_blacklist = `knife data bag show apache blacklist | cut -c5-`
+
+$full_blacklist = Array.new
+
+old_blacklist.split("\n").each do |oldip|
+  unless oldip == "blacklist"
+    $full_blacklist << oldip
+  end
+end
+
+if ARGV[0] == "ban"
+  unless $full_blacklist.include?("#{ARGV[1]}")
+    $full_blacklist << ARGV[1]
+    puts "#{ARGV[1]} has been added to the ban list."
+  else
+    puts "#{ARGV[1]} is already banned."
+  end
+elsif ARGV[0] == "unban"
+  $full_blacklist = $full_blacklist - [ "#{ARGV[1]}" ]
+  puts "#{ARGV[1]} has been removed from the ban list."
+end
+
+h1 = {}
+for key in 0..($full_blacklist.size - 1)
+  h1["#{key + 1}"] = $full_blacklist[key]
+end
+
+client_data = $connection.data_bags
+
+ip_pull = client_data.fetch('apache').items.each do |item|
+  $db_item = item
+  if $db_item.id == 'blacklist'
+   $db_item.data = h1.to_h
+   $db_item.save! # TODO - Remove verbose
+   #puts $db_item.data
+  end
+end
+
+new_blacklist = `knife data bag show apache blacklist | cut -c5-`
+
+if "#{old_blacklist}" != "#{new_blacklist}" then
+  #nodelist = `knife node list | paste -d ' ' -s`.strip
+  nodelist = `knife search node "recipes:prom-http\\:\\:default" | grep 'IP' | cut -d ":" -f2 | sed 's/\ //g' | paste -d ' ' -s`.strip
+  `for i in #{nodelist}; do ssh -o ConnectTimeOut=5 $i [[ -d /opt/www ]] \\&\\& \\{ chef-client -o 'recipe[prom-http::update_htaccess]' \\; \\}; done`
+end
+
+# check for existence of data bag whitelist, create if not there.
+# possibly set up backup list
+# set script with cron job to update template with allowed ips.
+

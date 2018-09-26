@@ -1,0 +1,11 @@
+[/var/log/httpd/*_access.log]
+tags: classflow
+type: apache 
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz
+
+[/var/log/httpd/*_error.log]
+tags: classflow
+type: apache 
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz

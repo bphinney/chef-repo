@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# This Nagios script will perform an IP a check against an IP Address and is used to test
+# the presence of an ipsec tunnel in working condition.
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+PROGNAME=$(basename -- $0)
+PROGPATH=`echo $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
+REVISION="1.0.0"
+
+# parse command line
+usage () {
+  echo ""
+  echo "USAGE: "
+  echo "  $PROGNAME -H IPADDRESS"
+  exit $STATE_UNKNOWN
+}
+
+while getopts "H:" opt; do
+  case $opt in
+    H) IPADDRESS=${OPTARG} ;;
+    *) usage ;;
+  esac
+done
+
+if [ -z "${IPADDRESS}" ]; then
+  usage
+fi
+
+check=`nc -zw2 -v -u ${IPADDRESS} 53 | grep "succeeded"`
+if [ "${check}" == "" ]; then
+  echo "Check failed to connect"; exit 1
+else
+  # exit with no errors
+  echo "OK"
+fi

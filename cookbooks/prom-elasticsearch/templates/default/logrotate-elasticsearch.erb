@@ -1,0 +1,3 @@
+#!/bin/sh
+find /usr/local/var/log/elasticsearch/ -name \*.log\.20\* -mtime +5 -exec rm -rf {} \;
+

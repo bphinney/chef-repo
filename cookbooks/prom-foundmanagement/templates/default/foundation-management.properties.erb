@@ -1,0 +1,70 @@
+# Database connection information
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+spring.datasource.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.initialSize=<%= node["jdbc"]["jdbc_initsize"] %>
+spring.datasource.minIdle=<%= node["jdbc"]["jdbc_minidle"] %>
+spring.datasource.maxIdle=<%= node["jdbc"]["jdbc_maxidle"] %>
+spring.datasource.maxActive=<%= node["jdbc"]["jdbc_maxactive"] %>
+spring.datasource.maxWait=30000
+spring.datasource.testOnBorrow=true
+spring.datasource.validationQuery=SELECT 1
+spring.datasource.removeAbandoned=true
+spring.datasource.logAbandoned=true
+
+activationlinkexpiration=20160
+
+## Database Liquibase Information
+liquibase.driver=com.mysql.jdbc.Driver
+liquibase.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+liquibase.username=<%= node['af']['activfoundbuser'] %>
+liquibase.password=<%= node['af']['activfoundbpass']  %>
+
+#Liquibase context
+liquibase-contexts=<%= node['database']['contextmode']  %>
+
+## Liquibase Config section
+liquibase.config.driver=com.mysql.jdbc.Driver
+liquibase.config.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+liquibase.config.username=<%= node['af']['activfoundbuser'] %>
+liquibase.config.password=<%= node['af']['activfoundbpass']  %>
+liquibase.threads=5
+
+## FoundationConfig
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=5
+spring.datasource.foundationConfig.maxIdle=5
+spring.datasource.foundationConfig.maxActive=20
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+liquibase.config.defaultSchema=<%= node['fconfig']['founconfigdb'] %>
+
+# smtp config
+smtp.host=<%= @emailserver %>
+smtp.port=587
+smtp.ssl=false
+smtp.user=<%= @emailuser %>
+smtp.password=<%= @emailpass %>
+smtp.fromaddress=<%= node['smtp']["smtp_from_address"] %>
+mail.protocol=smtp
+
+#Redis properties for cache
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+redis.cluster.lock.expiry.interval=60000
+redis.cluster.lock.acquire.timeout.interval=10000
+
+#Local server properties IN-1460
+local.server.api.username=localserveruser
+local.server.api.password=5gzV>{@w]Xw_8Q%v

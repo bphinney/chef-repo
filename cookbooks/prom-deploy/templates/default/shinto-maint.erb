@@ -1,0 +1,41 @@
+#!/opt/chef/embedded/bin/ruby -W0
+##########################################################
+## shinto: executing another tool, watching logs and    ##
+## reporting via email.                                 ##
+##                                                      ##
+## Changelog: 1.0, first implimentation                 ##
+##########################################################
+
+##########################################
+## Global Vars                          ##
+##########################################
+
+$dstMsgAddr = "devops@prometheanproduct.com"       ## Destination email address
+$logPath    = "/opt/tomcat/bin/maint/"             ## Location of the logs
+$tenant     = "all"                                ## Tenant name or / all
+$errString  = "ERROR"                              ## The thing you want me to email on
+
+###########################################
+## Master Methods                        ##
+###########################################
+
+def sendMsg 
+  osDate = %x[date "+DATE: %m/%d/%y TIME: %H:%M:%S"]
+  %x[echo "Deployment of applications completed at: #{osDate}" \
+    | mail -s "Backend code deployment completed" -r esreindex@classflow.com #{$dstMsgAddr}]
+end
+
+def executeWatch 
+  %x[cd #{$logPath}; \
+    tail -f #{$logPath}/foundation-maint.log | \
+    grep "#{$errString}" | while read; do echo "ERROR DETECTED in foundation-maint.log" | \
+    mail -s "ERROR DETECTED in foundation-maint.log" -r esreindex@classflow.com #{$dstMsgAddr}; done]
+end
+
+
+# Reindex of types
+puts "(shinto-maint=>watch): watching foundation-maint logs"
+executeWatch
+sendMsg 
+
+

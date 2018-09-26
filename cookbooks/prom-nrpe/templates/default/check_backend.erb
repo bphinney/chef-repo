@@ -1,0 +1,29 @@
+#!/bin/sh
+# check_backend plugin for nrpe usage
+
+if [ "$(( `cat /var/log/messages | wc -l` + 1 ))" -lt /var/log/messages._rlen ]; then
+  echo "1" > /var/log/messages._rlen
+fi
+
+[[ `tail -n+\`cat /var/log/messages._rlen\` /var/log/messages | grep -m1 -o 'has no server available!'` == 'has no server available!' ]] && {
+  check='CRITICAL'
+} || {
+  check='OK'
+}
+
+echo $(( `wc -l /var/log/messages | cut -f1 -d" "` + 1 )) > /var/log/messages._rlen
+
+case $check in
+  CRITICAL)
+    echo "CRITICAL - Backend error detected!"
+    exit 2
+    ;;
+  OK)
+    echo "OK - No backend error detected."
+    exit 0
+    ;;
+  *)
+    echo "UNKNOWN - Unrecognized Response."
+    exit 3
+    ;;
+esac

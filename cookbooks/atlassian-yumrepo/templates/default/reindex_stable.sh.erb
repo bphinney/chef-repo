@@ -1,0 +1,87 @@
+#!/bin/bash
+
+GPG_NAME=ACDC2EF1
+REPONAME=stable
+VERSION=6.0
+
+for bindir in `find dists/${REPONAME} -type d -name "binary*"`; do
+    arch=`echo $bindir|cut -d"-" -f 2`
+    echo "Processing ${bindir} with arch ${arch}"
+
+    overrides_file=/tmp/overrides
+    package_file=$bindir/Packages
+    release_file=$bindir/Release
+
+    # Create simple overrides file to stop warnings
+    cat /dev/null > $overrides_file
+    for pkg in `ls pool/main/ | grep -E "(all|${arch})\.deb"`; do
+        pkg_name=`/usr/bin/dpkg-deb -f pool/main/${pkg} Package`
+        echo "${pkg_name} Priority extra" >> $overrides_file
+    done
+
+    # Index of packages is written to Packages which is also zipped
+    dpkg-scanpackages -a ${arch} pool/main $overrides_file > $package_file
+    # The line above is also commonly written as:
+    # dpkg-scanpackages -a ${arch} pool/main /dev/null > $package_file
+    gzip -9c $package_file > ${package_file}.gz
+    bzip2 -c $package_file > ${package_file}.bz2
+
+    # Cleanup
+    rm $overrides_file
+done
+
+# Release info goes into Release & Release.gpg which includes an md5 & sha1 hash of Packages.*
+# Generate & sign release file
+cd dists/${REPONAME}
+cat > Release <<ENDRELEASE
+Suite: ${REPONAME}
+Version: ${VERSION}
+Component: main
+Origin: Promethean, Inc 
+Label: Promethean Repo
+Architecture: i386 amd64
+Date: `date`
+ENDRELEASE
+
+# Generate hashes
+echo "MD5Sum:" >> Release
+for hashme in `find main -type f`; do
+    md5=`openssl dgst -md5 ${hashme}|cut -d" " -f 2`
+    size=`stat -c %s ${hashme}`
+    echo " ${md5} ${size} ${hashme}" >> Release
+done
+echo "SHA1:" >> Release
+for hashme in `find main -type f`; do
+    sha1=`openssl dgst -sha1 ${hashme}|cut -d" " -f 2`
+    size=`stat -c %s ${hashme}`
+    echo " ${sha1} ${size} ${hashme}" >> Release
+done
+
+# Sign!
+gpg --yes -u $GPG_NAME --sign -bao Release.gpg Release
+cd -
+
+After running this script, you should end up with a directory structure that looks a lot like this:
+
+
+/yum-repo/apt/
+/yum-repo/apt/dists
+/yum-repo/apt/dists/stable
+/yum-repo/apt/dists/stable/Release
+/yum-repo/apt/dists/stable/Release.gpg
+/yum-repo/apt/dists/stable/main
+/yum-repo/apt/dists/stable/main/binary-i386
+/yum-repo/apt/dists/stable/main/binary-i386/Packages.gz
+/yum-repo/apt/dists/stable/main/binary-i386/Packages.bz2
+/yum-repo/apt/dists/stable/main/binary-i386/Packages
+/yum-repo/apt/dists/stable/main/binary-amd64
+/yum-repo/apt/dists/stable/main/binary-amd64/Packages.gz
+/yum-repo/apt/dists/stable/main/binary-amd64/Packages.bz2
+/yum-repo/apt/dists/stable/main/binary-amd64/Packages
+/yum-repo/apt/pool
+/yum-repo/apt/pool/main
+/yum-repo/apt/pool/main/mynoarchpackage_1.0.0-1_all.deb
+/yum-repo/apt/pool/main/mypackage_1.0.0-1_i386.deb
+/yum-repo/apt/pool/main/mypackage_1.0.0-1_amd64.deb
+/yum-repo/apt/reindex_stable.sh
+/yum-repo/apt/promethean.gpg

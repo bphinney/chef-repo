@@ -1,0 +1,30 @@
+/var/log/haproxy.log {
+    missingok
+    daily
+    notifempty
+    sharedscripts
+    compress
+    size 10M
+    rotate 2
+    create 644 haproxy haproxy
+    postrotate
+        /sbin/service haproxy reload > /dev/null 2>/dev/null || true
+        /sbin/service rsyslog restart > /dev/null 2>/dev/null || true
+    endscript
+}
+
+/var/log/haproxy-notice.log {
+    missingok
+    daily
+    notifempty
+    sharedscripts
+    compress
+    size 10M
+    rotate 2
+    create 644 haproxy haproxy
+    postrotate
+        /sbin/service haproxy reload > /dev/null 2>/dev/null || true
+        /sbin/service rsyslog restart > /dev/null 2>/dev/null || true
+    endscript
+}
+

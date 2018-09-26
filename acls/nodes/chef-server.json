@@ -1,0 +1,57 @@
+{
+  "create": {
+    "actors": [
+      "chef-server",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "read": {
+    "actors": [
+      "chef-server",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "update": {
+    "actors": [
+      "chef-server",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "delete": {
+    "actors": [
+      "chef-server",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "grant": {
+    "actors": [
+      "chef-server",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  }
+}

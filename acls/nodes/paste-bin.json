@@ -1,0 +1,53 @@
+{
+  "create": {
+    "actors": [
+      "pivotal",
+      "sreinoso"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "read": {
+    "actors": [
+      "pivotal",
+      "sreinoso"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "update": {
+    "actors": [
+      "pivotal",
+      "sreinoso"
+    ],
+    "groups": [
+      "admins",
+      "users"
+    ]
+  },
+  "delete": {
+    "actors": [
+      "pivotal",
+      "sreinoso"
+    ],
+    "groups": [
+      "admins",
+      "users"
+    ]
+  },
+  "grant": {
+    "actors": [
+      "pivotal",
+      "sreinoso"
+    ],
+    "groups": [
+      "admins"
+    ]
+  }
+}

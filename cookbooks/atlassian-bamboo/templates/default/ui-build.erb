@@ -1,0 +1,22 @@
+#!/bin/sh
+echo "Cleaning all cache"
+if [ -d $HOME/.qws ]; then
+  rm -rf $HOME/.qws 
+fi
+if [ -d $PWD/app/bower_components ]; then
+  rm -rf $PWD/app/bower_components
+fi
+if [ -d $PWD/.npm ]; then
+  rm -rf $PWD/.npm
+fi
+if [ -d $PWD/node_modules ]; then
+  rm -rf $PWD/node_modules
+fi
+echo "Starting prep."
+npm install bower gulp grunt-cli
+npm install
+PATH=$PWD/node_modules/.bin:$PATH
+bower install
+
+#grunt && echo "Success" || echo "Build Failed."
+

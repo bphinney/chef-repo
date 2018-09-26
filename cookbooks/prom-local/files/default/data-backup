@@ -1,0 +1,25 @@
+#!/bin/bash
+if [ ! -d /home/backup ]; then
+  mkdir /home/backup
+fi
+
+echo "Backing up DB"
+cd /home/backup
+if [ -f aflocal-db.zip ]; then 
+  rm -f aflocal-db.zip
+fi
+mysqldump -u root -proot aflocalappliance > aflocalappliance.dump
+mysqldump -u root -proot fconfiglocalappliance > fconfiglocalappliance.dump
+zip aflocal-db.zip *.dump
+rm -rf *.dump
+echo "DB backed up"
+
+
+echo "Backing up resources."
+if [ -f aflocal-resources.zip ]; then
+  rm -rf aflocal-resources.zip
+fi
+zip aflocal-resources.zip /opt/tomcat/content/*
+echo "Backup of resources completed."
+
+

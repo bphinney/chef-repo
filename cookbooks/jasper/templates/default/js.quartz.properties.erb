@@ -1,0 +1,21 @@
+# This file will consolidate all the configurable quartz properties
+#
+# Other properties which didn't need configuration are kept in js.quartz.base.properties
+
+quartz.delegateClass=org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+
+quartz.tablePrefix=QRTZ_
+report.quartz.misfirepolicy.singlesimplejob=SMART_POLICY
+report.quartz.misfirepolicy.repeatingsimplejob=SMART_POLICY
+report.quartz.misfirepolicy.calendarjob=SMART_POLICY
+quartz.extraSettings=
+
+report.scheduler.web.deployment.uri=http://<%= node['jasper']['servername'] %>/jasperserver-pro
+
+report.scheduler.mail.sender.host=<%= @emailserver %>
+report.scheduler.mail.sender.username=<%= @emailuser %>
+report.scheduler.mail.sender.password=<%= @emailpass %>
+report.scheduler.mail.sender.from=<%= node['smtp']["smtp_from_address"] %>
+report.scheduler.mail.sender.protocol=smtp
+report.scheduler.mail.sender.port=587
+

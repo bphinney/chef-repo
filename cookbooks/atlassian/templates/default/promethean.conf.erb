@@ -1,0 +1,18 @@
+conn promethean
+	type=tunnel
+	authby=secret
+	left=%defaultroute
+	leftid=<%= node['amazon_vpnaddress'] %>
+	leftnexthop=%defaultroute
+	leftsubnets={10.0.1.109/32,10.0.1.132/32,10.0.1.220/32,10.0.2.194/32}
+	right=<%= node['prom_vpnaddress'] %>
+	rightsubnets={<%= node['promethean_subnets'] %>}
+	keyexchange=ike
+	ike=aes128-sha1;modp1024
+	phase2alg=aes128-sha1
+	salifetime=43200s
+	pfs=yes
+	auto=start
+	dpdaction=restart
+	rekey=yes
+	keyingtries=%forever

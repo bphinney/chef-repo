@@ -1,0 +1,74 @@
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    log         127.0.0.1 local2
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    tcp
+    log                     global
+    option                  tcplog
+    option                  dontlognull
+    option                  redispatch
+    retries                 3
+    timeout http-request    1000s
+    timeout queue           10m
+    timeout connect         10s
+    timeout client          10m
+    timeout server          10m
+    timeout http-keep-alive 1000s
+    timeout check           1000s
+    maxconn                 3000
+
+listen agent *:54663
+  mode tcp
+  option tcplog
+  timeout server	30m
+  timeout client	20m
+  timeout queue		20m
+  balance leastconn
+ 
+  server bamboo 10.0.1.220:54663 check
+
+listen rdp *:3389
+  mode tcp
+  option tcplog
+  balance leastconn
+
+  server rdp 10.0.1.13:3389 check
+
+listen tstschda *:8009
+  mode tcp
+  option tcplog
+  balance leastconn
+
+  server tstschda 10.0.1.13:8009 check
+
+listen tstschdb *:8492
+  mode tcp
+  option tcplog
+  balance leastconn
+
+  server tstschdb 10.0.1.13:8492 check
+
+listen reposcp *:2200
+  mode tcp
+  option tcplog
+  balance leastconn
+
+  server reposcp 10.0.1.109 check
+

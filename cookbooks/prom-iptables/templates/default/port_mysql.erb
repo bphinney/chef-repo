@@ -1,0 +1,5 @@
+# Port 3306 for mysql and port 4040 for mysql-proxy
+-A FWR -p tcp -m tcp --dport 3306 -j ACCEPT
+-A FWR -p tcp -m tcp --dport 4040 -j ACCEPT
+-A FWR -p tcp -m tcp --dport 4041 -j ACCEPT
+

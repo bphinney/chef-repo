@@ -1,0 +1,92 @@
+application.jmx.name=parentService
+#datasource
+spring.datasource.parentService.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.parentService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['parent-service']['database'] %>?autoReconnect=true
+spring.datasource.parentService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.parentService.username=<%= node['parent-service']['username']%>
+spring.datasource.parentService.password=<%= node['parent-service']['password']%>
+spring.datasource.parentService.initialSize=5
+spring.datasource.parentService.minIdle=5
+spring.datasource.parentService.maxIdle=5
+spring.datasource.parentService.maxActive=10
+spring.datasource.parentService.maxWait=30000
+spring.datasource.parentService.testOnBorrow=true
+spring.datasource.parentService.validationQuery=SELECT 1
+spring.datasource.parentService.defaultCatalog=<%= node['parent-service']['database'] %>
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+liquibase.parentService.driver=com.mysql.jdbc.Driver
+liquibase.parentService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['parent-service']['database'] %>?autoReconnect=true
+
+liquibase.parentService.defaultSchema=<%= node['parent-service']['database'] %>
+liquibase.parentService.username=<%= node['parent-service']['username'] %>
+liquibase.parentService.password=<%= node['parent-service']['password'] %>
+#Used in RestTemplate spring config
+http.socket.user.timeout.default=5000
+http.connect.user.timeout.default=200
+environment.name=<%= node.chef_environment %>
+
+# IN-1421 Connection Endpoint for globalservice
+promethean.global.service.baseUrl=http://localhost:8080/global-service
+
+# IN-1555 Oauth properties for authserver
+<% if node.chef_environment == 'local' %>
+promethean.oauth.baseUrl=http://localhost/authserver
+<% else %>
+promethean.oauth.baseUrl=https://<%= node['apache']['apacheservername'] %>/authserver
+<% end %>
+promethean.oauth.client.key=<%= node['af']['parclientid'] %>
+promethean.oauth.client.secret=<%= node['af']['parclientsecret'] %>
+
+# IN-1467 - Elasticsearch/Rabbitmq properties
+elasticsearch.enable=true
+elasticsearch.index=<%= "foundation#{node.chef_environment}" %>
+parent.elasticsearch.index=parent
+<% unless node.chef_environment.include?("local") -%>
+elasticsearch.rest.url=<%= node['elasticsearch']['rest_url'] %>
+<% else -%>
+elasticsearch.rest.url=http://127.0.0.1:9200
+<% end -%>
+elasticsearch.rest.maxTotalConnection=<%= node['elasticsearch']['rest_max_conn'] %>
+elasticsearch.rest.maxTotalConnectionPerHost=<%= node['elasticsearch']['rest_max_perhost'] %>
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.enable=true
+rabbitmq.addresses=<%= @rmqaddresses %>
+<% end -%>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.exchange=classflow.topic
+
+rabbitmq.classflow.elasticsearch.queuename=ha.elasticsearch
+rabbitmq.classflow.elasticsearch.error.queuename=ha.elasticsearch.error
+rabbitmq.classflow.elasticsearch.routingkey=elasticsearch.*
+rabbitmq.classflow.elasticsearch.error.routingkey=elasticsearch.error.*
+
+# Property from IN-1618
+classflow.baseUrl=https://<%= node['apache']['apacheservername'] %>/classflow
+# Property from IN-1628
+activfoundation.baseUrl=https://<%= node['apache']['apacheservername'] %>
+# Properties from IN-1630
+cms.url=<%= node['af']['cms_url'] %>
+cms.guid=<%= node['af']['cms_guid'] %>
+sockjs.protocols=<%= node["af"]["sockjsprotocols"] %>
+collabserver.url=https://<%= node['collab']['collabhost'] %>
+
+# IN-1651
+# time in milliseconds that UI will use for ping interval ( 4.5 minutes )
+collab.ping.interval=270000
+
+#Terms and conditions
+parent.terms.conditions.version=<%= node['parent-service']['terms_conds_ver'] %>
+
+<% if node.attribute?('deployment_key') -%>
+#IN-1602 new parent properties
+deployment.key=<%= node['deployment_key'] %>
+<% end -%> 
+# IN-1642 Properties for api basic auth
+communication.internal.api.username=<%= node['af']['intapiuser'] %>
+communication.internal.api.password=<%= node['af']['intapipass'] %>
+

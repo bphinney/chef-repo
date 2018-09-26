@@ -1,0 +1,11 @@
+#!/bin/bash
+
+heartbeatfile='/tmp/prw_heartbeat'
+
+[[ "$1" != "WARNING" ]] || {
+  [[ "$2" != "HARD" ]] || {
+    touch $heartbeatfile
+    /usr/lib64/nagios/plugins/check_nrpe -H CF-PRODPRW1 -c restart_dotcms
+  }
+}
+exit 0;

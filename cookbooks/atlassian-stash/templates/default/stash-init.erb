@@ -1,0 +1,44 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: bitbucket
+# Required-Start: $local_fs $network $remote_fs
+# Required-Stop: $local_fs $network $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop bitbucket
+# Description: Bitbucket is a ticket tracking platform, which is the program that 
+#              creates and tracks software tickets.
+### END INIT INFO
+
+
+# Bitbucket Linux service controller script
+export BITBUCKET_USER="stash"
+export JAVA_HOME="/etc/alternatives/java_sdk_1.8.0"
+export BITBUCKET_HOME="/opt/git"
+cd "/opt/bitbucket/bin"
+
+case "$1" in
+    start)
+        su -c /opt/bitbucket/bin/start-bitbucket.sh stash
+        ;;
+    stop)
+        su -c /opt/bitbucket/bin/stop-bitbucket.sh stash
+        ;;
+    restart)
+        su -c /opt/bitbucket/bin/stop-bitbucket.sh stash
+        su -c /opt/bitbucket/bin/start-bitbucket.sh stash
+        ;;
+    status)
+        pid_status=`ps -ef | grep java | grep bitbucket | awk '{print $2}'`
+        if [ "$pid_status" != "" ]; then
+          echo "Bitbucket is running with pid $pid_status."
+        else
+          echo "Bitbucket is not running."
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+

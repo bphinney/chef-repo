@@ -1,0 +1,5 @@
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !/prmaintenance
+RewriteCond %{HTTP_HOST} !<%= node['prworld']['prmaintenance_bypass'] %> [NC]
+RewriteCond %{HTTP_HOST} !(.*-bypass.*) [NC]
+RewriteRule $ /prmaintenance/index.html [R=302,L]

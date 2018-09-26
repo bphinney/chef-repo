@@ -1,0 +1,39 @@
+<configuration scan="true" scanPeriod="1 minute">
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.base}/logs/foundation-maint.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>${log.base}/logs/foundation-maint-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- Keep 5 days worth of logs -->
+            <maxHistory>5</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 10MB -->
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg \(%file:%line\) %n</pattern>
+        </encoder>
+    </appender>
+
+
+    <logger name="org.springframework.amqp.rabbit.listener.BlockingQueueConsumer">
+        <level value="ERROR" />
+    </logger>
+
+    <logger name="org.hibernate" level="ERROR"/>
+    <logger name="org.dbunit" level="ERROR"/>
+
+    <logger name="promethean" level="ERROR"/>
+    <logger name="promethean.hibernate" level="ERROR"/>
+    <logger name="promethean.fconfig.manager" level="ERROR"/>
+    <logger name="promethean.collaboration.handler" level="ERROR"/>
+    <logger name="org.springframework.security.saml" level="ERROR"/>
+    <logger name="org.opensaml" level="ERROR"/>
+
+    <root level="CRITICAL">
+        <appender-ref ref="ROLLING" />
+    </root>
+</configuration>
+

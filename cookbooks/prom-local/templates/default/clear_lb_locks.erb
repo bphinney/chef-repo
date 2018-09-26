@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#! /bin/bash
+
+# db-releaselocks
+# disables activlocks across all foundation schemas
+
+# Locally store mysql credentials
+TMP_DIR="/tmp"
+MYSQL_USER="root"
+MYSQL_PASSWORD="root"
+SQLCREDS=$TMP_DIR/sqltmp.cnf
+echo "[client]" > $SQLCREDS
+echo "user=$MYSQL_USER" >> $SQLCREDS
+echo "password=$MYSQL_PASSWORD" >> $SQLCREDS
+echo "host=<%= node['database']['dbservername'] %>" >> $SQLCREDS
+MYSQL="/usr/bin/mysql --defaults-extra-file=$SQLCREDS -se"
+
+# List Foundation Schemas
+databases=$($MYSQL "SHOW DATABASES;" | grep -Ev "(Database|information_schema|performance_schema|mysql)")
+# Check Liquibase Locks
+echo "Checking liquibase locks"
+for db in $databases; do
+    lockstatus=$($MYSQL "select * from $db.DATABASECHANGELOGLOCK where LOCKED='1'" 2>/dev/null | grep -o '1' )
+    # Remove locks for any detected lock
+    if [ "$lockstatus" ]; then
+        echo "Removing liquibase locks for $db..."
+        $MYSQL "UPDATE $db.DATABASECHANGELOGLOCK SET LOCKED=FALSE, LOCKGRANTED=null, LOCKEDBY=null where ID=1;"
+    fi
+done
+
+# remove temporary credentials
+rm $SQLCREDS

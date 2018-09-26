@@ -1,0 +1,7 @@
+# Provisioner conifguration
+# This file is managed by Chef through the provisioner recipe/template
+daemon: <%= node['provisioner']['daemonized'] %>
+log_level: '<%= node['provisioner']['log_level'] %>'
+log_file: '<%= node['provisioner']['log_file'] %>'
+log_header: '<%= node['provisioner']['log_header'] %>'
+

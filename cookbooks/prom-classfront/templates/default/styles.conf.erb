@@ -1,0 +1,24 @@
+Alias /styles /opt/www/styles
+<Directory "/opt/www/styles">
+    Options -Indexes
+    DirectoryIndex index.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+<% if @sslRedirect == "true" -%>
+    RewriteEngine On
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+
+<% if @security == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+    AuthDigestDomain /opt/www/styles https://<%= node['apache']["apacheservername"] %>/styles
+
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+
+</Directory>

@@ -1,0 +1,18 @@
+#!/bin/bash
+echo "Enter username:"; read username
+
+echo "Please confirm that you want to remove ${username} from the chef-server, by entering 'YES'"; read answer
+
+if [ "$answer" == "YES"]; then
+
+  echo "Remove the user name from the admins group, then save your changes."
+  sudo knife edit /groups/admin.json
+
+  chef-server-ctl user-delete ${username}
+
+  echo "User ${username} has been removed from the chef-server."
+
+else
+  echo "Please be sure you have the right username for this, it is destructive..."
+fi
+

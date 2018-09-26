@@ -1,0 +1,121 @@
+################################################################
+## Promethean Multi-Tenant Virtual Host Configuration          #
+################################################################
+<% if node.chef_environment.include?("local") -%>
+#NameVirtualHost localhost:80
+<% else -%>
+#NameVirtualHost <%= node['ipaddress'] %>:80
+<% end -%>
+<% @tenants.each do |tenant| -%>
+     <% next if tenant["tenant_config.is_default_tenant"] == "\u0000" -%>
+        <% tenant_url = tenant["url"] -%>
+        <% tenant_header = tenant["tenant_header"] -%>
+        <% tenant_status = tenant["tenant_status"] -%>
+################################################################
+## Default Tenant Virtual Host Section                         #
+################################################################
+  <% if File.exists?("/etc/httpd/conf.d/mod_security.load") -%>
+    Include conf.d/mod_security.load
+  <% end -%>
+
+  <% if node['apache']['aflbmethod'] == "ajp" -%>
+    Include conf.d/activfoundation.load
+  <% end -%>
+
+  <% if File.exists?("/etc/httpd/conf.d/authserver.load") -%>
+    Include conf.d/authserver.load
+  <% end -%>
+
+  <% if node.chef_environment.include?("local") -%>
+<VirtualHost 0.0.0.0:80>
+  <% else -%>
+<VirtualHost <%= node['ipaddress'] %>:80>
+  <% end -%>
+    DocumentRoot /opt/www/classflow
+    ServerName <%= tenant_url %>
+    ServerAlias <%= tenant_url %> <%= node['apache']['maintenance_bypass'] %>
+  <% unless node['apache']['apachealias'].nil? || node['apache']['apachealias'].empty? -%>
+    ServerAlias <%= node['apache']['apachealias'] %>
+  <% end -%>
+
+    RequestHeader set Tenant-Host "<%= tenant_header %>"
+
+    CustomLog logs/classflow_access.log combined
+    ErrorLog logs/classflow_error.log
+
+    RewriteEngine On
+    <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [NE,L,R=301]
+    RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+    RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+    <% end -%>
+# rewrite rule for default vhost to allow robots
+    RewriteCond %{REQUEST_URI} ^/robots.txt$
+    RewriteRule ^/robots.txt$ /static/robots/go/robots.txt [L,R=301]
+    
+    Include conf.d/vhost-global.load
+
+    RewriteCond %{REQUEST_URI} ^/$ 
+    RewriteRule ^/$ /classflow/ [NE,L,R=301]
+    RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+    RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+
+    FileETag -INode MTime Size
+        
+    Include conf.d/cfredirect.load
+
+    <Location ~ "^/(?!(<%= node['classflow']['path_exclude_list'] %>)(.*))">
+      Deny from all
+    </Location>
+</VirtualHost>
+
+################################################################
+## Multi-Virtual Hosts Section                                 #
+################################################################
+<% @tenants.each do |tenant| -%>
+  <% next if tenant["tenant_config.is_default_tenant"] == "\u0001" -%>
+        <% tenant_url = tenant["url"] -%>
+        <% url_alias = tenant["url_alias"] -%>
+        <% tenant_header = tenant["tenant_header"] -%>
+        <% tenant_maintenance = tenant["tenant_maintenance"] -%>
+        <% tenant_status = tenant["tenant_status"] -%>
+<VirtualHost <%= node['ipaddress'] %>:80>
+    ServerName <%= tenant_url %>
+    ServerAlias <%= url_alias %>
+
+    RequestHeader set Tenant-Host "<%= tenant_header %>"
+
+    CustomLog logs/vhost-<%= tenant_url %>_access.log combined
+    ErrorLog logs/vhost-<%= tenant_url %>_error.log
+
+    RewriteEngine On
+    Include conf.d/vhost-global.load
+# rewrite rule for default vhost to allow robots
+    RewriteCond %{REQUEST_URI} ^/robots.txt$
+    RewriteRule ^/robots.txt$ /static/robots/no/robots.txt [L,R]
+
+## Tenant status section  ###
+
+      <% if tenant_status == "suspended" -%>
+    RewriteRule $ https://suspended.classflow.com/suspended/suspendedaccount.html [R=302,L]
+      <% elsif tenant_status == "deactivated" -%>
+    RewriteRule $ https://suspended.classflow.com/suspended/deactivatedaccount.html [R=302,L]
+      <% elsif tenant_status == "maintenance" -%>
+    Include conf.d/maintenance.redirect
+      <% else -%>
+    RewriteCond %{REQUEST_URI} ^/$
+    RewriteRule ^/$ /classflow/ [L,R]
+      <% end -%>
+## End Tenant status section ###
+    <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [NE,L,R]
+    <% end -%>
+    RewriteOptions Inherit
+    
+    #Include conf.d/vhost-global.load
+</VirtualHost>
+  <% end -%>
+<% end -%>
+

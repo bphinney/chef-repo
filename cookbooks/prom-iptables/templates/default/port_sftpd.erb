@@ -1,0 +1,8 @@
+# Port 2222 for sftpd 
+-A FWR -p tcp -m tcp --dport 2222 -j ACCEPT
+-A FWR -p tcp -m tcp --source 172.31.0.0/16 -j ACCEPT
+-A FWR -p tcp -m tcp --source 10.0.0.0/8 -j ACCEPT
+<% if node.chef_environment == 'localdemo' -%>
+-A FWR -p tcp -m tcp --source 192.168.0.0/16 -j ACCEPT
+<% end -%>
+

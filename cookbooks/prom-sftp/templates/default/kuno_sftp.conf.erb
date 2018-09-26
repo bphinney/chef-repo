@@ -1,0 +1,62 @@
+#
+# Copyright 2014, Promethean, Inc.
+#
+# Kuno SFTP Configutation 
+
+LoadModule mod_sql.c
+LoadModule mod_sql_passwd.c
+LoadModule mod_sql_mysql.c
+LoadModule mod_sftp.c
+LoadModule mod_sftp_sql.c
+
+<IfModule mod_sftp.c>
+  <VirtualHost 0.0.0.0>
+        SFTPEngine on
+        Port 2222
+        CreateHome on
+        DefaultRoot           ~
+        RequireValidShell     off
+        Umask                 022
+        allowOverwrite        on
+	User                  nobody
+	Group                 nobody
+	Servername            ftp.prometheanmanage.com 
+	AllowOverwrite        on
+	DefaultServer         on 
+	DeferWelcome          off
+	DenyFilter            \*.*/
+	DisplayChdir          .message true
+	DisplayLogin          welcome.msg
+	Group                 nobody
+
+        SFTPLog               /var/log/proftpd/sftp.log
+        SFTPHostKey           /etc/ssh/ssh_host_rsa_key
+        SFTPHostKey           /etc/ssh/ssh_host_dsa_key
+        SFTPAuthMethods       password
+
+	AuthOrder             mod_sql.c mod_auth_file.c
+	SQLAuthTypes          Backend
+	SQLUserInfo           usertable userid passwd uid gid homedir shell 
+	SQLGroupInfo          grouptable groupname gid members 
+	SQLAuthenticate       on 
+	SQLConnectInfo        proftpd_admin@prometheanprod.cd29ymptc6jc.us-west-2.rds.amazonaws.com proftpd m3tr0id
+	SQLLog                PASS counter 
+	SQLLog                STOR,DELE modified
+        SFTPCompression       delayed
+        #SqlLogFile           /var/log/proftpd/sql.log
+        SQLUserWhereClause    "disabled=0 and (NOW()<=expiration or expiration=-1 or expiration=0)"
+        SQLLog                PASS counter
+        SQLNamedQuery         counter UPDATE "lastlogin=now(), count=count+1 WHERE userid='%u'" usertable
+        SQLLog EXIT           time_logout
+        SQLNamedQuery         time_logout UPDATE "lastlogout=now() WHERE userid='%u'" usertable
+        SQLNamedQuery         login_time SELECT "lastlogin from usertable where userid='%u'"
+        SQLShowInfo           PASS "230" "Last login was: %{login_time}"
+        SQLLog                RETR,STOR transfer1
+        SQLNamedQuery         transfer1 INSERT "'%u', '%f', '%b', '%h', '%a', '%m', '%T', now(), 'c', NULL" xfer_stat
+        SQLLOG                ERR_RETR,ERR_STOR transfer2
+        SQLNamedQuery         transfer2 INSERT "'%u', '%f', '%b', '%h', '%a', '%m', '%T', now(), 'i', NULL" xfer_stat
+        AllowStoreRestart     on
+        AllowRetrieveRestart  on
+  </VirtualHost>
+</IfModule>
+

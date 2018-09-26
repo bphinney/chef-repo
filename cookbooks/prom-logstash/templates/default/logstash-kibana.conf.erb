@@ -1,0 +1,18 @@
+<VirtualHost 0.0.0.0:80>
+  ServerName <%= node['kibana']['webserver_hostname'] %>
+
+    CustomLog logs/kibana_access.log combined
+    ErrorLog logs/kibana_error.log
+ 
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} ^/$
+    RewriteRule ^/$ /_plugin/kibana/# [NE,R]
+
+    <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+    <% end -%>
+
+    Include conf.d/logstash-kibana.proxy
+
+</VirtualHost>

@@ -1,0 +1,37 @@
+log_level        :auto
+log_location     STDOUT
+chef_gem_compile_time "false"
+chef_server_url  "<%= node['chef_server_url'] %>"
+validation_client_name "chef-validator"
+ssl_verify_mode :verify_none
+# Using default node name (fqdn)
+node_name       "<%= node['hostname'] %>"
+<% if node['chef_client'].attribute?('disable_ohai_plugins') -%>
+    <% if node['chef_client']['disable_ohai_plugins'] == "true" -%>
+ohai.disabled_plugins = [
+             :Azure,
+             :DigitalOcean,
+             :DMI,
+             :Drivers,
+             :Elixir,
+             :Erlang,
+             :Eucalyptus,
+             :GCE,
+             :Go,
+             :Groovy,
+             :IpScopes,
+             :Linode,
+             :LSB,
+             :Lua,
+             :Mono,
+             :NetworkListeners,
+             :NetworkRoutes,
+             :Openstack,
+             :PHP,
+             :Powershell,
+             :Rust,
+             :SystemProfile,
+             :Zpools,
+             ]
+    <% end -%>
+<% end -%>

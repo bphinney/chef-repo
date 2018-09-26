@@ -1,0 +1,11 @@
+[Unit]
+Description=CollabServer Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/collabserver start
+ExecStop=/usr/local/bin/collabserver stop
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+#!/bin/bash
+[[ `ps aux | grep [r]sync | grep efs/backup` == "" ]] && {
+  for i in `ls /efs/data/`; do
+    export d=`echo $i | cut -f3 -d"/"`
+    mkdir -p /efs/backup/$d/
+    for h in `ls /efs/data/$d`; do
+      rsync -av --update --no-W /efs/data/$d/$h /efs/backup/$d/
+    done
+  done
+  echo "EFS backups complete on `date`"
+} || {
+  echo "EFS backups from previous week still running.  Aborted for the time being."
+}

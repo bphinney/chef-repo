@@ -1,0 +1,121 @@
+<% back_ws = @ws_conns * node['collab']['collabws_maxconn'].to_i -%>
+<% back_st = @ws_conns * node['collab']['collabst_maxconn'].to_i -%>
+<% back_ht = @ws_conns * node['collab']['collabht_maxconn'].to_i -%>
+<% ws_frconn = back_st + 1100 -%>
+<% ws_wsfront = back_ws + back_st + 1100 -%>
+<% maxconn = back_ws + back_st + 5000 -%>
+global
+
+    log         127.0.0.1 local0 info
+    log		127.0.0.1 local0 notice
+
+    maxconn	<%= maxconn %> # Total Max Connections.
+    nbproc	1
+
+# Requires recent Haproxy to work with websockets (for example 1.4.16).
+defaults
+    log		global
+    mode	http
+    option	httplog
+    option	dontlognull
+    option	redispatch
+    retries	3
+    # Set timeouts to your needs
+    timeout client  3m
+    timeout connect 1m
+    timeout server  3m
+    timeout tunnel  5m   # timeout to use with WebSocket and CONNECT
+frontend unsecured 0.0.0.0:7090
+    maxconn <%= ws_frconn %>
+
+    acl allowed path_beg /stats /classflow /sockjs /vertxbus /eventbus
+    acl allowed path_end index.html
+    http-request deny if !allowed
+    log		127.0.0.1 local0 err
+    redirect scheme https if !{ ssl_fc }
+
+frontend secured 0.0.0.0:7080
+    mode http
+    maxconn <%= ws_wsfront %>
+
+    option tcplog
+    option forwardfor # This sets X-Forward-For
+    # Fake connection:close, required in this setup.
+    option http-server-close
+    #option abortonclose
+    #option http-pretend-keepalive
+
+    acl is_static path_beg /classflow
+    acl is_stats  path_beg /stats
+    acl is_websocket hdr(Upgrade) -i WebSocket
+    acl is_websocket_server hdr_beg(Host) -i <%= node['collab']['collabhost'] %>
+    acl is_websocket_server hdr_sub(Host) -i collab
+    acl is_websocket_server hdr_beg(Host) -i <%= node['ipaddress'] %>:7080
+
+    use_backend static if is_static
+    use_backend stats if is_stats
+    use_backend websocket if is_websocket is_websocket_server
+    #default_backend websocket
+    default_backend httpback
+
+<% if @rewrite == 'true' -%>
+    reqirep ^([^\ :]*)\ /(?!stats|activfoundation)(.*)     \1\ /activfoundation/\2
+<% end -%>
+
+backend websocket
+    balance leastconn
+    option http-pretend-keepalive
+    timeout tunnel  5m     # timeout to use with WebSocket and CONNECT
+<% unless node.chef_environment.include?("local") -%>
+<% @websocket_hosts.each do |backend_host|-%>
+    server <%= backend_host['hostname'] %> <%= backend_host['ipaddress'] %>:<%= node['collab']['collab_port'] %> weight 1 minconn 10 maxconn <%= node['collab']['collabws_maxconn'] %> check inter <%= node['collab']['collab_health_inter'] %>
+<% end -%>
+<% else -%>
+    server <%= node['hostname'] %> 127.0.0.1:<%= node['collab']['collab_port'] %> weight 1 minconn 10 maxconn <%= node['collab']['collabws_maxconn'] %> check inter <%= node['collab']['collab_health_inter'] %>
+<% end -%>
+
+backend static
+    balance leastconn
+    option forwardfor # This sets X-Forwarded For
+<% unless node.chef_environment.include?("local") -%>
+<% @frontend_hosts.each do |frontend_host|-%>
+    server <%= frontend_host['hostname'] %> <%= frontend_host['ipaddress'] %>:80 weight 1 minconn 1 maxconn <%= node['collab']['collabst_maxconn'] %> check inter <%= node['collab']['collab_health_inter'] %>
+<% end -%>
+<% else -%>
+    server <%= node['hostname'] %> 127.0.0.1:80 weight 1 minconn 1 maxconn <%= node['collab']['collabst_maxconn'] %> check inter <%= node['collab']['collab_health_inter'] %>
+<% end -%>
+backend httpback
+    mode http
+    balance leastconn
+    option abortonclose
+<% if node['collab']['collabproxycookie_method'] == "insert" -%>
+    #appsession JSESSIONID len 52 timeout 2h request-learn
+    cookie SERVERID insert indirect nocache maxidle 60m maxlife 2h
+<% elsif node['collab']['collabproxycookie_method'] == "learn" -%>
+    appsession JSESSIONID len 52 timeout 2h request-learn
+    #cookie SERVERID insert indirect nocache maxidle 60m maxlife 2h
+<% end -%>
+    #option httpclose
+<% unless node.chef_environment.include?("local") -%>
+  <% @tenants.each do |tenant| -%>
+     <% next if tenant["tenant_config.is_default_tenant"] == "\u0000" -%>
+        <% tenant_url = tenant["url"] -%>
+    option httpchk HEAD <%= node['collab']['collab_check'] %> HTTP/1.0\r\nHost:\ <%= tenant_url %>\r\nUser-agent:\ haproxy
+  <% end -%>
+<% else -%>
+        <% tenant_url = node['apache']['apacheservername'] -%>
+    option httpchk HEAD <%= node['collab']['collab_check'] %> HTTP/1.0\r\nHost:\ <%= tenant_url %>\r\nUser-agent:\ haproxy
+<% end -%>
+<% unless node.chef_environment.include?("local") -%>
+<% @websocket_hosts.each do |backend_host|-%>
+    server <%= backend_host['hostname'] %> <%= backend_host['ipaddress'] %>:<%= node['collab']['collab_port'] %> cookie <%= backend_host['hostname'] %> weight 1 minconn 1 maxconn <%= node['collab']['collabht_maxconn'] %> check inter <%= node['collab']['collab_health_inter'] %>
+<% end -%>
+<% else -%>
+    server <%= node['hostname'] %> 127.0.0.1:<%= node['collab']['collab_port'] %> cookie <%= node['hostname'] %> weight 1 minconn 1 maxconn <%= node['collab']['collabht_maxconn'] %> check inter <%= node['collab']['collab_health_inter'] %>
+<% end -%>
+
+backend stats
+    stats uri /stats
+    stats enable 
+    stats auth causer:capass
+    stats admin if TRUE

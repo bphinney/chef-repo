@@ -1,0 +1,461 @@
+
+# Database connection information
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.url=jdbc:mysql://<%= @mysqlserver %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+spring.datasource.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.initialSize=<%= node["jdbc"]["jdbc_initsize"] %>
+spring.datasource.minIdle=<%= node["jdbc"]["jdbc_minidle"] %>
+spring.datasource.maxIdle=<%= node["jdbc"]["jdbc_maxidle"] %>
+spring.datasource.maxActive=<%= node["jdbc"]["jdbc_maxactive"] %>
+spring.datasource.maxWait=30000
+spring.datasource.testOnBorrow=true
+spring.datasource.validationQuery=SELECT 1
+spring.datasource.removeAbandoned=true
+spring.datasource.logAbandoned=true
+
+# IN-1449
+spring.datasource.notificationService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['notification-service']['database'] %>?autoReconnect=true
+spring.datasource.notificationService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.notificationService.username=<%= node['notification-service']['username'] %>
+spring.datasource.notificationService.password=<%= node['notification-service']['password'] %>
+
+spring.datasource.storeService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['store-service']['database'] %>?autoReconnect=true
+spring.datasource.storeService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.storeService.username=<%= node['store-service']['username']%>
+spring.datasource.storeService.password=<%= node['store-service']['password']%>
+
+spring.datasource.parentService.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['parent-service']['database'] %>?autoReconnect=true
+spring.datasource.parentService.connectionProperties=useUnicode=true;characterEncoding=UTF-8
+spring.datasource.parentService.username=<%= node['parent-service']['username']%>
+spring.datasource.parentService.password=<%= node['parent-service']['password']%>
+
+
+activationlinkexpiration=20160
+
+## Database Liquibase Information
+liquibase.driver=com.mysql.jdbc.Driver
+liquibase.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['af']['activfoundb'] %>?autoReconnect=true
+liquibase.username=<%= node['af']['activfoundbuser'] %>
+liquibase.password=<%= node['af']['activfoundbpass']  %>
+
+#Liquibase context
+liquibase-contexts=<%= node['database']['contextmode']  %>
+
+## Liquibase Config section
+liquibase.config.driver=com.mysql.jdbc.Driver
+liquibase.config.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+liquibase.config.username=<%= node['af']['activfoundbuser'] %>
+liquibase.config.password=<%= node['af']['activfoundbpass']  %>
+liquibase.threads=5
+
+## FoundationConfig
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=5
+spring.datasource.foundationConfig.maxIdle=5
+spring.datasource.foundationConfig.maxActive=20
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+liquibase.config.defaultSchema=<%= node['fconfig']['founconfigdb'] %>
+
+#added support url per cf-17557
+support.url=https://support.classflow.com
+
+## FoundationConfig - Multi-Tenancy
+tenant.default.schema=<%= node['af']['activfoundb'] %>
+<% if node.chef_environment == "local" -%>
+tenant.default.tenant=localhost
+<% else -%>
+<% @tenants.each do |tenant| -%>
+     <% next if tenant["tenant_config.is_default_tenant"] == "\u0000" -%>
+        <% tenant_header = tenant["tenant_header"] -%>
+tenant.default.tenant=<%= tenant_header %>
+    <% end -%>
+<% end -%>
+liquibase.defaultSchema=<%= node['af']['activfoundb'] %>
+# smtp config
+smtp.host=<%= @emailserver %>
+smtp.port=587
+smtp.ssl=false
+smtp.user=<%= @emailuser %>
+smtp.password=<%= @emailpass %>
+smtp.fromaddress=<%= node['smtp']["smtp_from_address"] %>
+mail.protocol=smtp
+
+#foundation-report location
+report.url=http://localhost:8080/foundation-report
+
+#resource Upload Directory for content storage
+resourceUploadDirectory=/opt/tomcat/content
+#resource Upload Directory for import storage
+importDirectory=/opt/tomcat/content/import
+globalResourceUploadDirectory=/opt/tomcat/content/global
+<% if node['af']['content_fallback'] == 'true' -%>
+fallbackUploadDirectory=/opt/tomcat/contentback
+globalFallbackUploadDirectory=/opt/tomcat/contentback
+<% else -%>
+fallbackUploadDirectory=
+globalFallbackUploadDirectory=
+<% end -%>
+
+temp.resource.cleanup.interval=48
+temp.resource.service.cron=0 0 * * * ?
+import.job.maxRetryAttempts=1
+import.job.retry.service.cron=0 0/5 * * * ?
+import.job.enabled=true
+
+#content search
+webSearchEngines=<%= node['websearchEngine'] %>
+videoSearchEngines=<%= node['videosearchEngine'] %>
+imageSearchEngines=<%= node['imagesearchEngine'] %>
+ 
+#Bing
+bing.search.url=https://api.datamarket.azure.com/Bing/Search/v1/Composite?
+bing.api.key=<%= node['bingapi.key'] %>
+ 
+#Youtube
+youtube.search.url=https://gdata.youtube.com/feeds/api/videos?
+
+# Classflow UI URL
+documentation.services.basePath=http://<%= node['apache']['apacheservername'] %>/activfoundation
+cms.url=<%= node['af']['cms_url'] %>
+cms.guid=<%= node['af']['cms_guid'] %>
+csp.frame.ancestors=<%= node['af']['frame_ancestors'] %>
+redirect.to.origin.domain=false
+# IN-1634
+cors.origin.regex=<%= node['af']['cors_regex'] %> <%= node['af']['cors_regex_dev'] %>
+
+#convert pdf to images using Aspose
+doc.aspose.pdf.enabled=false
+pdf.viewer.enabled=false
+doc.concurrency.thread.limit=1
+<% if node['af']['documentconsumer_enabled'].nil? || node['af']['documentconsumer_enabled'].empty? -%>
+documentGenerate.consumer.enabled=true
+<% else -%>
+documentGenerate.consumer.enabled=false
+<% end -%>
+aspose.license=<%= node['af']['aspose_license'] %>
+
+#IN-1141 - To be Deprecated for 4.0
+host.url=https://<%= node['apache']['apacheservername'] %>
+
+hazelcast.group.name=sessionbroker<%= node.chef_environment %>
+hazelcast.group.password=<%= node.chef_environment %>
+<% unless node['collab']['zookeeper'] == "true" -%>
+hazelcast.port=5701
+<% else -%>
+hazelcast.port=5801
+<% end -%>
+hazelcast.auto-increment=false
+hazelcast.members=<%= @activnodes %>
+<% unless node.chef_environment.include?("local") -%>
+hazelcast.interface=<%= node['ipaddress'] %>
+<% else -%>
+hazelcast.interface=127.0.0.1
+<% end -%>
+
+thumnail.service.url=http://localhost:3000
+
+#Elasticsearch Search Engine
+elasticsearch.cluster=<%= node['elasticsearch']['cluster']['name'] %>
+elasticsearch.members=<%= @elasticnodes %>
+elasticsearch.index=<%= "foundation#{node.chef_environment}" %>
+elasticsearch.staff.reindex.threads=<%= node["elasticsearch"]["staffreindexthreads"] %>
+elasticsearch.staff.reindex.bulk.size=<%= node["elasticsearch"]["staffreindexbulk"] %>
+elasticsearch.enable=true
+elasticsearch.school.reindex.bulk.size=2000
+# New Properties for Elasticsearch REST IN-1054
+<% unless node.chef_environment.include?("local") -%>
+elasticsearch.rest.url=<%= node['elasticsearch']['rest_url'] %>
+<% else -%>
+elasticsearch.rest.url=http://127.0.0.1:9200
+<% end -%>
+elasticsearch.rest.maxTotalConnection=<%= node['elasticsearch']['rest_max_conn'] %>
+elasticsearch.rest.maxTotalConnectionPerHost=<%= node['elasticsearch']['rest_max_perhost'] %>
+#drive reindex
+elasticsearch.drive.reindex.threads=2
+elasticsearch.drive.reindex.bulk.size=5000
+elasticsearch.tenant.reindex.threads=5
+elasticsearch.drive.types.reindex.threads=2
+elasticsearch.drive.reindex.threads=2
+elasticsearch.readTimeout=30000
+elasticsearch.connectionTimeout=10000
+
+# RabbitMQ Section
+rabbitmq.host=<%= @rabbitmqserver %>
+rabbitmq.port=<%= @rabbitmqport %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.metrics.consumers=2
+rabbitmq.classflow.exo.consumers=2
+rabbitmq.classflow.elasticsearch.consumers=<%= node['af']['elastic_consumers'] %>
+rabbitmq.classflow.import.consumers=20
+rabbitmq.classflow.download.consumers=20
+rabbitmq.classflow.endassessment.consumers=2
+rabbitmq.classflow.session.message.consumers=2
+
+# IN-1418
+# IN-1428
+rabbitmq.classflow.collabchat.consumers=<%= node['rabbitmq']['chatconsumers'] %>
+rabbitmq.classflow.collablesson.consumers=<%= node['rabbitmq']['lessonconsumers'] %>
+
+rabbitmq.classflow.collabpoll.consumers=3
+rabbitmq.classflow.collabpublish.consumers=3
+rabbitmq.classflow.collabregister.consumers=3
+rabbitmq.classflow.collabsocketmanagement.consumers=3
+
+# IN-1569
+rabbitmq.classflow.product.revoke.consumers=2
+rabbitmq.classflow.publish.import.response.consumers=2
+rabbitmq.classflow.publish.response.consumers=2
+rabbitmq.classflow.publish.error.consumers=2
+
+# IN-1609
+<% if node.attribute?('rabbitmq') and node['rabbitmq'].attribute?('disabled') and node['rabbitmq']['disabled'] == "false" -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.addresses=<%= @rmqaddresses %>
+rabbitmq.enable=true
+<% end -%>
+
+#Google Analytics
+google.analytics.code=<%= node[:googleanalyticscode] %>
+<% if node[:googleanalyticscode].nil? || node[:googleanalyticscode].empty? -%>
+google.analytics.enable=false
+<% else -%>
+google.analytics.enable=true
+<% end -%>
+
+# Device Auto login expire interval in days
+device.auto.login.expire=30
+
+# Assessment
+assessment.activity.max.retries=3
+assessment.completion.monitor.sleep.time=1000
+
+#collab msg tracking
+# Localization Support
+locale.enabled=true
+
+#AF Debugging Selections
+#assessment
+assessment.endtime.monitoring=<%= node['afdebug']['assessmentendtimemonitoring'] %>
+
+<% if node['java']['samlkeystore'] == "true" -%>
+#AF ADFS enabled tenants
+saml.keystore.path=<%= node['java']['samlkeystorepath'] %>
+saml.keystore.password=<%= node['java']['samlkeystorepass'] %>
+
+saml.keystore.pathName=<%= node['java']['samlkeystorepathname'] %>
+saml.keystore.fileName=<%= node['java']['samlkeystorefile'] %>
+saml.metadata.minRefreshDelay=<%= node['java']['samlrefreshdelay'] %>
+saml.metadata.maxRefreshDelay=<%= node['java']['samlrefreshdelay'] %>
+saml.metadata.addRemoveRefreshDelay=<%= node['java']['samlrefreshdelay'] %>
+<% end -%>
+temp.lesson.cleanup.cron=<%= node['lessoncleancron'] %>
+temp.lesson.cleanup=<%= node['lessoncleanup'] %>
+temp.cleanup.interval=<%= node['lessconcleanint'] %>
+
+freesite.drive.name=<%= node["af"]["freesitedrive"] %>
+resource.size.limit=<%= node["af"]["resourcesizelimit"] %>
+
+netcheck.timeout=<%= node["af"]["netchecktimeout"] %>
+sockjs.protocols=<%= node["af"]["sockjsprotocols"] %>
+
+youtube.search.url=<%= node["af"]["youtubesearchurl"] %>
+# Email Validation Properties
+email.validation.url=http://<%= node['smtp']['server'] %>:<%= node['smtp']['port'] %>
+email.validation.api.key=<%= node['smtp']['apikey'] %>
+email.validation.source.systems=CLASSFLOW,INSPIRE
+email.validation.timeout=<%= node['smtp']['validation_timeout'] %>
+
+# Collabserver settings per Shameet
+#socket cleanup
+# time in minutes to wait until collab will kill a socket if it doesn’t see data from the client ( including ping ) .
+socket.inactivity.interval=5
+# if true we keep checking for inactivity else no checking
+collab.connection.cleanup=true
+# time in milliseconds used by spring to kill a socket if doesn’t see data on the socket including outgoing heartbeats
+collab.disconnect.delay=60000
+# max message size allowed
+collab.max.message.size=524288
+# max messages allowed to be queued up to a target socket
+collab.message.cache.size=101
+# time in milliseconds used by spring to send out heartbeats to socket
+collab.heartbeat.interval=55000
+# time in milliseconds that UI will use for ping interval ( 4.5 minutes )
+collab.ping.interval=270000
+
+# per IN-1348
+collabserver.leson.receiver.verticles=25
+collabserver.chat.receiver.verticles=15
+
+# Vertx Collab Settings
+# Need a directory accessible to the Tomcat user for caching, this default .vertx wont work
+
+vertx.cacheDirBase=/opt/vertx/cache
+vertx.startup.timeout=30000
+vertx.hz.group.name=collabserver<%= node.chef_environment %>
+vertx.hz.group.password=<%= node.chef_environment %>
+vertx.hz.port=5801
+vertx.hz.auto-increment=true
+vertx.hz.members=<%= @hazelnodes %>
+<% unless node.chef_environment.include?("local") -%>
+vertx.hz.interfaces=<%= node['ipaddress'] %>
+<% else -%>
+vertx.hz.interfaces=127.0.0.1
+<% end -%>
+
+# IN-1418
+vertx.hz.backupcount=<%= @collab_node_count %>
+
+# Vertx zookeeper cluster implementation
+vertx.zk.group.name=collabserver<%= node.chef_environment %>
+<% unless node.chef_environment.include?("local") -%>
+vertx.zk.members=<%= @zkaddresses %>
+vertx.zk.interfaces=<%= node['ipaddress'] %>
+<% else -%>
+vertx.zk.members=127.0.0.1:2181
+vertx.zk.interfaces=127.0.0.1
+<% end -%>
+vertx.zk.retry.initialSleepTime=100
+vertx.zk.retry.intervalTimes=10
+vertx.zk.maxTimes=15
+<% unless node['collab']['zookeeper'] == "true" -%>
+vertx.cluster.hazelcast=true
+<% else -%>
+vertx.cluster.hazelcast=false
+<% end -%>
+
+#Redis properties for cache
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+redis.cluster.lock.expiry.interval=60000
+redis.cluster.lock.acquire.timeout.interval=10000
+redis.maxTotal=50
+redis.maxIdle=8
+redis.minIdle=8
+redis.cache.timeout.collab.lesson=28800
+redis.cache.timeout.collab.chat=28800
+
+# IN-1094 Property to identify environment for lock files
+environment.name=<%= node.chef_environment %>
+
+#Sessions cleanup - close all sessions started 8 hours back. Runs every 30 minutes.
+session.cleanup.interval=8
+# if false will not do any cleanup
+session.cleanup=true
+session.expire.service.cron=0 0/30 * * * ?
+session.cleanup.page.size=100
+ 
+#session inactivate - close all sessions older than 5 minutes that do not have any open learners / presenters ( clients ). Runs every 5 minutes
+session.inactivate.service.cron=0 0/5 * * * ?
+session.inactivate.interval=5
+# if false then this job wont do anything
+session.inactivate=true
+session.inactivate.page.size=100
+ 
+# if true we will log the acks from clients
+collab.ack.log=false
+# if true we will persist the acks from clients
+collab.ack.persist=false
+
+#hazelcast
+hazelcast.assessment.map.max.size=100000
+hazelcast.assessment.map.eviction.percentage=10
+hazelcast.student.assessment.map.max.size=100000
+hazelcast.student.assessment.map.eviction.percentage=10
+hazelcast.student.assessment.activity.map.max.size=100000
+hazelcast.student.assessment.activity.map.eviction.percentage=10
+hazelcast.end.assessment.map.max.size=25000
+hazelcast.end.assessment.map.eviction.percentage=10
+hazelcast.lesson.map.max.size=25000
+hazelcast.lesson.map.eviction.percentage=10
+hazelcast.session.code.map.max.size=100000
+hazelcast.session.code.lesson.map.eviction.percentage=10
+hazelcast.session.token.map.max.size=100000
+hazelcast.session.token.lesson.map.eviction.percentage=10
+
+# Content discovery for mobile app
+content.refresh.service.cron=0 0/30 * * * ?
+
+# IN-1224 IN-1594 Properties for Intercom
+analytics.enabled=<%= node['af']['intercom_enabled'] %>
+intercom.app.id=<%= node['af']['intercom_app_id'] %>
+intercom.api.key=<%= node['af']['intercom_api_key'] %>
+intercom.secret.key=<%= node['af']['intercom_secret_key'] %>
+
+# IN-1128 Recurly property
+#recurly
+recurly.public.key=<%= node['af']['recurly_public_key'] %>
+recurly.private.key=<%= node['af']['recurly_private_key'] %>
+
+# IN-1138 Properties for Fastpass
+# fastpass
+fastpass.key=<%=node['af']['fastpass_key'] %>
+fastpass.secret=<%= node['af']['fastpass_secret'] %>
+fastpass.provider.url=<%= node['af']['fastpass_url'] %>
+
+# IN-1240 lesson last update delay
+lesson.last.update.delay=60000
+
+# IN-1437
+lesson.migrate.embedded.images=true
+
+# IN-1243/IN-1332 Properties for authserver
+<% if node.chef_environment == 'local' %>
+promethean.oauth.baseUrl=http://localhost/authserver
+<% else %>
+promethean.oauth.baseUrl=https://<%= node['apache']['apacheservername'] %>/authserver
+<% end %>
+promethean.oauth.client.key=<%= node['af']['afclientid'] %>
+promethean.oauth.client.secret=<%= node['af']['afclientsecret'] %>
+
+# IN-1260  Properties for Marketplace Subjects
+#Math
+
+tenant.default.subjectId1=18f5c5b17d944f79b2ff8d136253b5d1
+#science
+tenant.default.subjectId2=5256dd4bb2eb4987b9d85a4a97cfd46a
+#english
+tenant.default.subjectId3=40ae438439a34e1d96d58483d360dd69
+#History & Social Sciences
+tenant.default.subjectId4=e905f9b0b49f4229b3047cc0551b2de5
+
+# IN-1347 Testing
+lessson.collab.perform.sql=<%= node['af']['performsql'] %>
+
+# IN-1399 Google reCAPTCHA properties
+google.recaptcha.client.key=<%= node['af']['recaptcha_key'] %>
+google.recaptcha.client.secret=<%= node['af']['recaptcha_secret'] %>
+
+# IN-1421 Connection Endpoint for globalservice
+promethean.global.service.baseUrl=http://localhost:8080/global-service
+
+# IN-1646 Adding store service URL
+promethean.store.service.baseUrl=https://<%= node['apache']['apacheservername'] %>/store-service
+
+# IN-1494 local server properties
+local.server.api.username=localserveruser
+local.server.api.password=5gzV>{@w]Xw_8Q%v
+# local server cron expressions for usage data
+local.server.usage.data.cron=0 0 0 1 1 ? 2099
+local.server.usage.data.upload.cron=0 0 0 1 1 ? 2099
+
+# IN-1642 Properties for api basic auth
+communication.internal.api.username=<%= node['af']['intapiuser'] %>
+communication.internal.api.password=<%= node['af']['intapipass'] %>
+
+# IN-1677 Password reset
+user.password.reset.code.expiration.minutes=<%= node['af']['resetcodeexp'] %>

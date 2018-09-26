@@ -1,0 +1,52 @@
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    DocumentRoot /opt/www/planet
+    ServerName <%= node['planet']['planet_url'] %>
+    ServerAlias <%= node['planet']['planet_alias'] %>
+
+    CustomLog logs/planet_access.log combined
+    ErrorLog logs/planet_error.log
+
+    FileETag -INode +MTime +Size
+
+    RewriteEngine On
+    
+    RewriteCond ^/en-us/$
+    RewriteRule ^/en-us/$ http://<%= node['planet']['planet_url'] %>/us [R=301,L]
+    RewriteCond ^/en-gb/$ 
+    RewriteRule ^/en-gb/$ http://<%= node['planet']['planet_url'] %>/gb [R=301,L]
+    RewriteCond ^/en/$ 
+    RewriteRule ^/en/$ http://<%= node['planet']['planet_url'] %>/int [R=301,L]
+    RewriteCond ^/la/$ 
+    RewriteRule ^/la/$ http://<%= node['planet']['planet_url'] %>/lam [R=301,L]
+    RewriteCond ^/fr/$ 
+    RewriteRule ^/fr/$ http://<%= node['planet']['planet_url'] %>/fr [R=301,L]
+    RewriteCond ^/it/$ 
+    RewriteRule ^/it/$ http://<%= node['planet']['planet_url'] %>/it [R=301,L]
+    RewriteCond ^/de/$ 
+    RewriteRule ^/de/$ http://<%= node['planet']['planet_url'] %>/de [R=301,L]
+    RewriteCond ^/es/$ 
+    RewriteRule ^/es/$ http://<%= node['planet']['planet_url'] %>/es [R=301,L]
+    RewriteCond ^/pt/$ 
+    RewriteRule ^/pt/$ http://<%= node['planet']['planet_url'] %>/pt [R=301,L]
+    RewriteCond ^/ru/$ 
+    RewriteRule ^/ru/$ http://<%= node['planet']['planet_url'] %>/ru [R=301,L]
+    RewriteCond ^/fi/$ 
+    RewriteRule ^/fi/$ http://<%= node['planet']['planet_url'] %>/fi [R=301,L]
+    RewriteCond ^/nl/$ 
+    RewriteRule ^/nl/$ http://<%= node['planet']['planet_url'] %>/nl [R=301,L]
+    RewriteCond ^/kk/$ 
+    RewriteRule ^/kk/$ http://<%= node['planet']['planet_url'] %>/kk [R=301,L]
+    RewriteCond ^/ar/$ 
+    RewriteRule ^/ar/$ http://<%= node['planet']['planet_url'] %>/ar [R=301,L]
+    RewriteCond ^/zh/$ 
+    RewriteRule ^/zh/$ http://<%= node['planet']['planet_url'] %>/zh [R=301,L]
+
+<Directory "/opt/www/planet">
+    Options -Indexes
+    DirectoryIndex /us/index.html
+    Include conf.d/.htaccess
+</Directory>
+
+</VirtualHost>
+

@@ -1,0 +1,27 @@
+[prometheancommon]
+name=Packages from Promethean - noarch
+baseurl=<%= node['yumrepository']['yumserver_url'] %>/common
+enabled=1
+gpgcheck=<%= node["yum"]["gpgcheck"] %>
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>
+
+[prometheantesting]
+name=Packages from Promethean - testing
+baseurl=<%= node['yumrepository']['yumserver_url'] %>/testing
+enabled=<%= node["yum"]["test_repo"] %>
+gpgcheck=<%= node["yum"]["gpgcheck"] %>
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>
+
+[prometheanrelease]
+name=Packages from Promethean - release
+baseurl=<%= node['yumrepository']['yumserver_url'] %>/release
+enabled=<%= node["yum"]["rel_repo"] %>
+gpgcheck=<%= node["yum"]["gpgcheck"] %>
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>
+
+[prometheanspecial]
+name=Packages from Promethean - special
+baseurl=<%= node['yumrepository']['yumserver_url'] %>/special
+enabled=1
+gpgcheck=<%= node["yum"]["gpgcheck"] %>
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>

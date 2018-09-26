@@ -1,0 +1,11 @@
+<% if "test -d /opt/www/prmaintenance" -%>
+Alias /prmaintenance   /opt/www/prmaintenance
+
+<Directory "/opt/www/prmaintenance">
+    Options -Indexes
+    DirectoryIndex index.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+</Directory>
+<% end -%>
+

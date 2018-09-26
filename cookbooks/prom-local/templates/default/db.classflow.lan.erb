@@ -1,0 +1,28 @@
+;
+; BIND data file for local network interface
+;
+$TTL    604800
+@       IN      SOA     ns1.classflow.lan. ns2.classflow.lan. (
+                         <%= Time.new.strftime("%Y%m%d%H%M%S") %> ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800         ; Negative Cache TTL
+)
+;
+; name servers - NS records
+                        IN      NS      ns1.classflow.lan.
+                        IN      NS      ns2.classflow.lan.
+
+; name servers - A records
+ns1.classflow.lan.      IN      A       <%= node['ipaddress'] %>
+ns2.classflow.lan.      IN      A       <%= node['ipaddress'] %>
+
+; classflow.lan - A records
+www.classflow.lan.      IN      A       <%= node['ipaddress'] %>
+demo.classflow.lan.     IN      A       <%= node['ipaddress'] %>
+mysql.classflow.lan.    IN      A       <%= node['ipaddress'] %>
+elastic.classflow.lan.  IN      A       <%= node['ipaddress'] %>
+elasticsearch.classflow.lan.	IN      A       <%= node['ipaddress'] %>
+demo-collab.classflow.lan.	IN      A       <%= node['ipaddress'] %>
+

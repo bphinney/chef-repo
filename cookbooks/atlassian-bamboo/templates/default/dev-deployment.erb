@@ -1,0 +1,150 @@
+#!/bin/bash
+
+
+data_check(){
+
+if [ "$application_name" == "" ]; then
+        echo "This command requires application name."; exit 1
+elif [ "$command_function" == "deploy" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To deploy an application, you need to provide a target host and filename for this command."; exit 1
+elif [ "$command_function" == "codeploy" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To deploy an application, you need to provide a target host and filename for this command."; exit 1
+elif [ "$command_function" == "uideploy" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To deploy an application, you need to provide a target host and filename for this command."; exit 1
+elif [ "$command_function" == "flipdeploy" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To deploy an application, you need to provide a target host and filename for this command."; exit 1
+elif [ "$command_function" == "learndeploy" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To deploy an application, you need to provide a target host and filename for this command."; exit 1
+elif [ "$command_function" == "uiappdeploy" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To deploy an application, you need to provide a target host and filename for this command."; exit 1
+elif [ "$command_function" == "database" ] && [ "$target_server" == "" -o "$file_link" == "" ]; then
+        echo "To update a database, you need to provide a target database option and database file to execute this command."; exit 1
+fi
+}
+
+database_update(){
+
+mysql --user=atlassian_user --password=atlassian_pass $target_server < $file_link || { echo "There was a problem with the database update."; exit 1; }
+
+}
+
+dev_deploy(){
+
+# SSH to Dev server, Stop service, remove old files, extract new files, change location, restart service
+echo "Changing ownership and Restarting service."
+ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$target_server "chown -R tomcat.tomcat /opt/tomcat/webapps/* ;service activtomcat stop; rm -rf /opt/tomcat/webapps/${application_name}; service activtomcat start" && echo "Success" || { echo "Error restarting service."; exit 1; } 
+
+}
+
+dev_deploy_all(){
+
+# SSH to Dev server, Stop service, remove old files, extract new files, change location, restart service
+echo "Changing ownership and Restarting service."
+ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$target_server "chown -R tomcat.tomcat /opt/tomcat/webapps/* ;service activtomcat stop; cd /opt/tomcat/webapps; for i in `ls -d /opt/tomcat/webapps/*/`; do rm -rf $i; done;" && echo "Success" || { echo "Error Deploying apps."; exit 1; }
+
+}
+
+co_deploy(){
+
+# SSH to Dev server, Stop service, remove old files, extract new files, change location, restart service
+echo "Changing ownership and Restarting service."
+ssh -i ~/.ssh/ngroot.pem -o StrictHostKeyChecking=false root@$target_server "chown -R tomcat.tomcat /opt/vertx/webapps/collabserver.zip; service collabserver restart" && echo "Success" || { echo "Error restarting service."; exit 1; } 
+
+}
+
+devui_deploy(){
+
+# SSH to Dev server, Stop service, remove old files, extract new files, change location, restart service
+echo "Doing deployment of $file_link to $target_server"
+echo "Extracting new application files." 
+ssh -i ~/.ssh/ngroot.pem  -o StrictHostKeyChecking=false root@$target_server "cd /opt/www/$application_name; rm -rf *; unzip /opt/storage/$file_link; if [ -d /opt/www/$application_name/dist ]; then mv /opt/www/$application_name/dist/* ./; rm -r /opt/www/$application_name/dist; fi" && echo "Success" || { echo "Error extracting new files."; exit 1; }
+
+}
+
+devflip_deploy(){
+
+# SSH to Dev server, Unzip librarires, create symbolic links, restart service
+echo "Doing deployment of $file_link to $target_server"
+echo "Extracting new application files." 
+ssh -i ~/.ssh/ngroot.pem  -o StrictHostKeyChecking=false root@$target_server "if [ ! -d /opt/storage/lib64 ]; then mkdir -p /opt/storage/lib64; fi; cd /opt/storage/lib64; rm -rf /usr/lib64/libflip*; rm -rf /opt/storage/lib64/*; unzip /opt/storage/$file_link; mv /opt/storage/lib64/lib* /usr/lib64/; ldconfig; mv /opt/storage/lib64/flipchart-cmdline /usr/local/sbin/flipchart-cmdline; chmod +x /usr/local/sbin/flipchart-cmdline; mv /opt/storage/lib64/thumbnails-cmdline /usr/local/sbin/thumbnails-cmdline; chmod +x /usr/local/sbin/thumbnails-cmdline; service activtomcat stop; sleep 10; rm -rf /opt/tomcat/webapps/flipchart-integration; rm -rf /opt/tomcat/webapps/flipchart-integration.war; mv /opt/storage/lib64/flipchart-integration.war /opt/tomcat/webapps/flipchart-integration.war; chown tomcat:tomcat /opt/tomcat/webapps/flipchart-integration.war; service activtomcat start" && echo "Success" || { echo "Error extracting new files."; exit 1; }
+
+}
+
+devflipall_deploy(){
+
+# SSH to Dev server, Unzip librarires, create symbolic links, restart service
+echo "Doing deployment of $file_link to $target_server"
+echo "Extracting new application files." 
+ssh -i ~/.ssh/ngroot.pem  -o StrictHostKeyChecking=false root@$target_server "if [ ! -d /opt/storage/lib64 ]; then mkdir -p /opt/storage/lib64; fi; cd /opt/storage/lib64; rm -rf /usr/lib64/libflip*; rm -rf /opt/storage/lib64/*; unzip /opt/storage/$file_link; mv /opt/storage/lib64/lib* /usr/lib64/; ldconfig; mv /opt/storage/lib64/flipchart-cmdline /usr/local/sbin/flipchart-cmdline; chmod +x /usr/local/sbin/flipchart-cmdline; mv /opt/storage/lib64/thumbnails-cmdline /usr/local/sbin/thumbnails-cmdline; chmod +x /usr/local/sbin/thumbnails-cmdline; rm -rf /opt/tomcat/webapps/flipchart-integration; rm -rf /opt/tomcat/webapps/flipchart-integration.war; mv /opt/storage/lib64/flipchart-integration.war /opt/tomcat/webapps/flipchart-integration.war; chown tomcat:tomcat /opt/tomcat/webapps/flipchart-integration.war; service activtomcat start" && echo "Success" || { echo "Error extracting new files."; exit 1; }
+
+}
+
+
+devlearner_deploy(){
+
+# SSH to Dev server, Stop service, remove old files, extract new files, change location, restart service
+echo "Doing deployment of $file_link to $target_server"
+echo "Extracting new application files." 
+ssh -i ~/.ssh/ngroot.pem  -o StrictHostKeyChecking=false root@$target_server "cd /opt/www/learner; rm -rf /opt/www/learner/*; unzip /opt/storage/$file_link;" && echo "Success" || { echo "Error extracting new files."; exit 1; }
+
+}
+
+devuiapp_deploy(){
+
+# SSH to Dev server, Stop service, remove old files, extract new files, change location, restart service
+echo "Doing deployment of $file_link to $target_server"
+echo "Extracting new application files." 
+ssh -i ~/.ssh/ngroot.pem  -o StrictHostKeyChecking=false root@$target_server "cd /opt/www/uappapi; rm -rf /opt/www/uappapi/*; unzip /opt/storage/$file_link;" && echo "Success" || { echo "Error extracting new files."; exit 1; }
+
+}
+
+command_line(){
+if [ "$command_function" == "deploy" ]; then
+	data_check
+        dev_deploy
+elif [ "$command_function" == "deployall" ]; then
+        data_check
+        dev_deploy_all
+elif [ "$command_function" == "codeploy" ]; then
+        data_check
+        co_deploy
+elif [ "$command_function" == "database" ]; then
+	data_check
+        database_update
+elif [ "$command_function" == "uideploy" ]; then
+	data_check
+	devui_deploy
+elif [ "$command_function" == "flipdeploy" ]; then
+        data_check
+        devflip_deploy
+elif [ "$command_function" == "flipalldeploy" ]; then
+        data_check
+        devflipall_deploy
+elif [ "$command_function" == "learndeploy" ]; then
+        data_check
+        devlearner_deploy
+elif [ "$command_function" == "uiappdeploy" ]; then
+        data_check
+        devuiapp_deploy
+elif [ "$command_function" == "" ]; then
+        echo "Need to provide a function and options, i.e. $0 -c deploy|codeploy|uideploy|flipdeploy|learndeploy|uiappdeploy -a application_name -t target_server|database -f file_link."
+fi
+}
+
+while getopts "c:a:t:f:" opt; do
+        case $opt in
+                c)	command_function="$OPTARG"
+                        echo "$command_function"
+                        ;;
+                a)      application_name="$OPTARG"
+                        ;;
+                t)	target_server="$OPTARG"
+                        echo "If Deployment is requested, it will occur on $target_host"
+                        ;;
+                f)	file_link="$OPTARG"
+                        ;;
+        esac
+done
+
+command_line
+

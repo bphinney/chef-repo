@@ -1,0 +1,11 @@
+input {
+     
+        redis {
+            'codec' => "json"
+            'data_type' => "list"
+            'host' => "127.0.0.1"
+            'key' => "logstash"
+            'port' => "6379"
+            'type' => "redis-input"
+        }
+}

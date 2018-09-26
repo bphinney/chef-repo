@@ -1,0 +1,43 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: confluence
+# Required-Start: $local_fs $network $remote_fs
+# Required-Stop: $local_fs $network $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop confluence
+# Description: Confluence is a wiki/documentation platform, which is the program that 
+#              creates and holds documentation.
+### END INIT INFO
+# Confluence Linux service controller script
+export CONF_USER="confluence"
+export CONF_HOME="/opt/confluence-data"
+export JAVA_HOME="/etc/alternatives/jre_1.<%= node['java']['jdk_version'] %>.0"
+
+cd "/opt/confluence/bin"
+
+case "$1" in
+    start)
+        su -c "/opt/confluence/bin/start-confluence.sh" confluence
+        ;;
+    stop)
+        su -c "/opt/confluence/bin/stop-confluence.sh" confluence
+        ;;
+    restart)
+        su -c "/opt/confluence/bin/stop-confluence.sh" confluence
+        su -c "/opt/confluence/bin/start-confluence.sh" confluence
+        ;;
+    status)
+        pid_status=`ps -ef | grep java | grep confluence | awk '{print $2}'`
+        if [ "$pid_status" != "" ]; then
+          echo "Confluence is running with pid $pid_status."
+        else
+          echo "Confluence is not running."
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+

@@ -1,0 +1,40 @@
+NameVirtualHost *:80
+<VirtualHost  *:80>
+    ServerAdmin webmaster@prometheanjira.com
+    DocumentRoot /opt/tomcat/www
+    ServerName devsupport.prometheanjira.com
+    ErrorLog logs/devsupport-error_log
+    CustomLog logs/devsupport-access_log common
+
+<% if @sslRedirect == "true" -%>
+    AllowEncodedSlashes On
+
+    RewriteEngine On
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule (.*) https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+
+    ProxyRequests Off
+    ProxyPreserveHost on
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+    <Location />
+      Options -Indexes
+      AllowOverride AuthConfig Limit
+      Include conf.d/.htaccess
+<% if "test -f /etc/httpd/conf.d/.digest_pw" -%>
+      AuthType Digest
+      AuthName "PROMETHEAN-RESTRICTED"
+      AuthDigestDomain / https://devsupport.prometheanjira.com/
+
+      AuthDigestProvider file
+      AuthUserFile /etc/httpd/conf.d/.digest_pw
+      Require valid-user
+<% end -%>
+    </Location>
+    ProxyPass / http://<%= node['ipaddress'] %>:8081/
+    ProxyPassReverse / http://<%= node['ipaddress'] %>:8081/
+
+</VirtualHost>

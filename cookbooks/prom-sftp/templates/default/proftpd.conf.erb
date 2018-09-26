@@ -1,0 +1,16 @@
+#
+# Copyright 2014, Promethean, Inc.
+#
+# Master ProFTPD Configuration
+
+Include /etc/proftpd/conf.d/kuno_sftp.conf
+Include /etc/proftpd/conf.d/foundation_sftp.conf
+ScoreboardFile /var/run/proftpd/proftpd.scoreboard 
+
+<IfModule mod_auth_pam.c>
+AuthPAM off
+</IfModule>
+
+<Limit LOGIN>
+  DenyAll
+</Limit>

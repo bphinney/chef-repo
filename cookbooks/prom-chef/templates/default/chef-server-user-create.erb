@@ -1,0 +1,24 @@
+#!/bin/bash
+echo "Enter username:"; read username
+echo "Enter First Name:"; read firstname
+echo "Enter Last Name:"; read lastname
+echo "Enter Email:"; read emailaddress
+echo "Enter Password:"; read password
+
+if [ -d /home/${username} ]; then
+
+  mkdir -p /home/${username}/.chef
+  # Creating account
+  chef-server-ctl user-create ${username} "${firstname}" "${lastname}" "${emailaddress}" "${password}" -f /home/${username}/.chef/${username}.pem
+  # Change ownership of pem file
+  chown ${username}:${username} /home/${username}/.chef/${username}.pem
+
+  # Add user to promethean organization
+  chef-server-ctl org-user-add promethean ${username} --admin
+
+  echo "User key is in the /home/${username}/.chef/${username}.pem file"
+
+else
+  echo "No home directory for ${username}"
+fi
+

@@ -1,0 +1,89 @@
+#! /bin/bash
+TIMESTAMP=$(date +"%F-%s")
+
+TMP_DIR="/tmp/store"
+
+# Writing drive contents requires sudo
+if [[ $UID != 0 ]]; then
+    echo "Please run db-restore with sudo."
+    exit 1
+fi
+
+# Use remote-deploy configuration to determine branch
+BRANCH=$(cat /opt/storage/branch.txt)
+if [ -z "$BRANCH" ]; then
+    echo "Initial branch configuration is required, please run remote-deploy first."
+    echo "Exiting..."
+    exit 1
+else
+    BACKUP_DIR="/vagrant/db-backup/$BRANCH"
+fi
+
+MYSQL_USER="root"
+MYSQL_PASSWORD="root"
+MYSQL="/usr/bin/mysql"
+MYSQLDUMP="/usr/bin/mysqldump"
+
+# Check for shared directory
+if [ ! -d "/vagrant" ]; then
+    echo "Export requires shared /vagrant directory"
+    echo "Ensure vagrant vbguest plugin is installed and shared directory is available"
+    echo "Exiting..."
+    exit 1
+fi
+
+# Create temporary path
+mkdir -p $TMP_DIR
+
+# Locally store mysql credentials
+sqlcreds=$TMP_DIR/vagrant.cnf
+echo "[client]" > $sqlcreds
+echo "user=$MYSQL_USER" >> $sqlcreds
+echo "password=$MYSQL_PASSWORD" >> $sqlcreds
+echo "host=localhost" >> $sqlcreds
+
+# Determines the latest backup in the path
+restore_files=$(find $BACKUP_DIR -name vagrant-db-backup*)
+latest_backup=$(echo "$restore_files" | sort -nr | head -n1 )
+
+if [ -z "$latest_backup" ]; then
+    echo "Recent backup not detected in your $BACKUP_DIR directory"
+    exit 1
+else
+    echo "Latest backup file is $latest_backup"
+fi
+
+echo "This script will DESTRUCTIVELY REPLACE your current content files/schemas"
+echo "with your most recent backup"
+read -p "Are you sure you want to continue? " -r
+echo    # (optional) move to a new line
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    # Extract schemas/content to absolute path corresponding with backup tar
+    echo "Extracting backup content"
+    tar -xvf $latest_backup -C / > /dev/null
+
+    echo "Stopping Activtomcat"
+    service activtomcat stop
+
+    # Restore schemas
+    db_array=$(find /tmp/store -type f -name *.dump -exec basename {} .dump \;)
+    for schema in $db_array; do
+        echo "Restoring schema $schema"
+        $MYSQL --defaults-extra-file=$sqlcreds $schema < "$TMP_DIR/$schema.dump"
+        echo "Restored schema $schema"
+    done
+
+    echo "Restarting Activtomcat"
+    service activtomcat start
+    
+    echo "Initiating reindex of restored content"
+    /usr/bin/es-clean
+
+    # Clear tmp content
+    rm -rf $TMP_DIR
+
+    echo "Backup restoration complete for $BRANCH."
+    echo "Please restart backend to initiate schema upgrades."
+fi
+exit 0

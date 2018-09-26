@@ -1,0 +1,166 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: collabserver
+# Required-Start: $local_fs $network $remote_fs
+# Required-Stop: $local_fs $network $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: start and stop collabserver
+# Description: Collabserver is an application container for vertx.
+### END INIT INFO
+
+# User running the Vert.X collabserver process
+USER=tomcat
+app="collabserver"
+
+# Path to the application
+APPLICATION_BIN=/opt/vertx/bin
+# Path to the logfile
+LOGFILE="/opt/vertx/logs/$app.log"
+
+<% if node['java']['jdk_version'] == "8" -%>
+export JAVA_HOME="/usr/lib/jvm/java-1.8.0"
+<% else -%>
+export JAVA_HOME="/usr/lib/jvm/java-1.7.0"
+<% end -%>
+# Java
+JAVA=$JAVA_HOME/bin/java
+
+# Look for sane jar file name
+JARFILE=$(find $APPLICATION_BIN -name ${app}.jar)
+
+if [ -z "$JARFILE" ] ; then
+  # Look for insane jar file name
+  JARFILE=$(find $APPLICATION_BIN -name ${app}\*.jar -printf "%C@ %p\n" | sort -rn | head -n 1|cut -d' ' -f2)
+fi
+
+JAVA_OPTS=""
+
+# Set Limits for environments ignoring '/etc/security/limits.d'
+ulimit -n <%= node['tomcat']['filenumber'] %>
+ulimit -l <%= node['tomcat']['filesize'] %>
+
+<% unless node['java']["java_specops"].nil? || node['java']["java_specops"].empty? -%>
+export <%= node["java_specops"] %>
+<% end -%>
+<% unless node['java']["java_xms_memory"].nil? || node['java']["java_xms_memory"].empty? -%>
+export JAVA_OPTS="$JAVA_OPTS -Xms<%= node['java']["java_xms_memory"] %>"
+<% end -%>
+<% unless node['java']["java_xmx_memory"].nil? || node['java']["java_xmx_memory"].empty? -%>
+export JAVA_OPTS="$JAVA_OPTS -Xmx<%= node['java']["java_xmx_memory"] %>"
+<% end -%>
+<% unless node['java']["java_max_perm"].nil? || node['java']["java_max_perm"].empty? -%>
+export JAVA_OPTS="$JAVA_OPTS -XX:MaxPermSize=<%= node['java']["java_max_perm"] %>"
+<% end -%>
+<% unless node['java']["java_xss_memory"].nil? || node['java']["java_xss_memory"].empty? -%>
+export JAVA_OPTS="$JAVA_OPTS -Xss<%= node['java']["java_xss_memory"] %>"
+<% end -%>
+#export JAVA_OPTS="$JAVA_OPTS -XX:+UseParallelGC"
+# Base Logging Configuration
+
+<% if node.attribute?('java') and 
+node["java"].attribute?('jmx_console_enable') and 
+node["java"]["jmx_console_enable"] == "true" -%>
+
+# JMX Console stuff
+export JMXOPTS="-Dcom.sun.management.jmxremote.port=8091 \
+-Dcom.sun.management.jmxremote.rmi.port=8091 \
+-Djava.rmi.server.hostname=localhost \
+-Dcom.sun.management.jmxremote.authenticate=true \
+-Dcom.sun.management.jmxremote.ssl=false \
+-Dcom.sun.management.jmxremote.password.file=/opt/tomcat/conf/jmxremote.password \
+-Dcom.sun.management.jmxremote.access.file=/opt/tomcat/conf/jmxremote.access"
+<% end -%>
+
+<% if node['newrelic']['newrelic-plugin-install'] == "true" -%>
+export JAVA_OPTS=" $JAVA_OPTS -javaagent:/opt/newrelic/newrelic.jar"
+<% end -%>
+
+export JAVA_OPTS=" $JMXOPTS $JAVA_OPTS -Dvertx.base=/opt/vertx"
+export JAVA_OPTS="$JAVA_OPTS -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
+# IN-1281 Added options for zookeeper maxbuffer
+<% unless node['zookeeper']['maxbuffer'].nil? || node['zookeeper']['maxbuffer'].empty? -%>
+export JAVA_OPTS="$JAVA_OPTS -Djute.maxbuffer=<%= node['zookeeper']['maxbuffer'] %>"
+<% end -%>
+
+chown -R $USER.$USER /opt/vertx
+
+# source function library
+. /etc/init.d/functions
+RETVAL=0
+
+app_status_cmd(){
+    APP_STATUS=`ps -ef | grep java | grep $app | grep -v nohup | grep -v grep | awk '{print $2}'`
+}
+
+start() {
+    echo -n "Starting $app service: "
+    app_status_cmd
+    if [ "$APP_STATUS" != "" ]; then
+        echo "$app is already running with pid $APP_STATUS"
+    else
+        su -c "nohup $JAVA $JAVA_OPTS -jar $JARFILE" $USER >> $LOGFILE 2>&1 &
+        sleep 2
+        echo_success
+        printf "\n"
+    fi
+    sleep 3
+}
+
+stop() {
+    echo -n "Shutting down $app service: "
+    app_status_cmd
+    if [ "$APP_STATUS" == "" ]; then
+        echo "There is no PID/process for $app."
+    else
+        app_status_cmd
+        if [ "$APP_STATUS" != "" ]; then
+            kill $APP_STATUS >> $LOGFILE 2>&1 
+            sleep 2
+            app_status_cmd
+            if [ "$APP_STATUS" == "" ]; then
+              echo_success 
+            else
+              kill -9 $APP_STATUS >> $LOGFILE 2>&1 && echo_success
+            fi
+        else
+            echo_success
+        fi
+        echo
+    fi
+}
+
+status() {
+    app_status_cmd
+    if [ "$APP_STATUS" == "" ]; then
+        echo "$app is not running."
+    else
+        app_status_cmd
+        if [ "$APP_STATUS" != "" ]; then
+            echo "$app is running with pid $APP_STATUS."
+        else
+            echo "$app is not running."
+        fi
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart|reload)
+        stop
+        sleep 10
+        start
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        esac
+exit 0
+

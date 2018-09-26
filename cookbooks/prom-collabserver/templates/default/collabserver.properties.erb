@@ -1,0 +1,117 @@
+# Vertx Collabserver Properties
+
+## FoundationConfig
+spring.datasource.foundationConfig.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.foundationConfig.url=jdbc:mysql://<%= node['database']['dbserver'] %>/<%= node['fconfig']['founconfigdb'] %>?autoReconnect=true
+spring.datasource.foundationConfig.connectionProperties=useUnicode=true;characterEncoding=UTF-8;useLegacyDatetimeCode=false;serverTimezone=Etc/UTC
+spring.datasource.foundationConfig.username=<%= node['af']['activfoundbuser'] %>
+spring.datasource.foundationConfig.password=<%= node['af']['activfoundbpass']  %>
+spring.datasource.foundationConfig.initialSize=5
+spring.datasource.foundationConfig.minIdle=1
+spring.datasource.foundationConfig.maxIdle=1
+spring.datasource.foundationConfig.maxActive=1
+spring.datasource.foundationConfig.maxWait=30000
+spring.datasource.foundationConfig.testOnBorrow=true
+spring.datasource.foundationConfig.validationQuery=SELECT 1
+spring.datasource.foundationConfig.defaultCatalog=<%= node['fconfig']['founconfigdb'] %>
+spring.datasource.foundationConfig.removeAbandoned=true
+spring.datasource.foundationConfig.logAbandoned=true
+
+vertx.cacheDirBase=/opt/vertx/cache
+# Active Server Port
+server.port=9080
+
+vertx.cwd=/opt/vertx
+
+# Should be greater than corresponding Activfoundation collabping property
+collab.ping.interval=300000
+
+# Number of verticles to serve incoming collab request
+collab.verticles=8
+
+# Collab URL of Default Tenant
+collab.server.url=<%= @tenant_id %>
+
+# Collab Max Message Size
+message.max.size=1000000
+
+# Timeout in ms
+vertx.startup.timeout=30000
+
+# Vertx Hazelcast Settings
+vertx.hz.group.name=collabserver<%= node.chef_environment %>
+vertx.hz.group.password=<%= node.chef_environment %>
+vertx.hz.port=5801
+vertx.hz.auto-increment=true
+vertx.hz.members=<%= @hazelnodes %>
+#vertx.hz.members=127.0.0.1:2181
+<% unless node.chef_environment.include?("local") -%>
+vertx.hz.interfaces=<%= node['ipaddress'] %>
+<% else -%>
+vertx.hz.interfaces=127.0.0.1
+<% end -%>
+# IN-1418
+vertx.hz.backupcount=<%= @collab_node_count %>
+
+# Vertx zookeeper cluster implementation
+vertx.zk.group.name=collabserver<%= node.chef_environment %>
+<% unless node.chef_environment.include?("local") -%>
+vertx.zk.members=<%= @zkaddresses %>
+vertx.zk.interfaces=<%= node['ipaddress'] %>
+<% else -%>
+vertx.zk.members=127.0.0.1:2181
+vertx.zk.interfaces=127.0.0.1
+<% end -%>
+vertx.zk.retry.initialSleepTime=100
+vertx.zk.retry.intervalTimes=10
+vertx.zk.maxTimes=15
+<% unless node['collab']['zookeeper'] == "true" -%>
+vertx.cluster.hazelcast=true
+<% else -%>
+vertx.cluster.hazelcast=false
+<% end -%>
+
+# Activfoundation Hazelcast settings
+<% unless node['collab']['zookeeper'] == "true" -%>
+af.hz.port:5701
+<% else -%>
+af.hz.port:5801
+<% end -%>
+af.hz.members=<%= @activnodes %>
+af.hz.group.name=sessionbroker<%= node.chef_environment %>
+af.hz.group.password=<%= node.chef_environment %>
+af.hz.connection.attempt.limit=0
+af.hz.connection.attempt.period=10000
+
+# Environment Name
+environment.name=<%= node.chef_environment %>
+
+#NOT YET USED IN 4.0
+#hazelcast.group.name=sessionbrokerlocal
+#hazelcast.group.password=local
+#hazelcast.servers=127.0.0.1, localhost
+#activfoundation.internal.url=http://localhost:8080/activfoundation
+#activfoundation.connect.user.timeout=2000
+#activfoundation.socket.user.timeout=5000
+
+#Redis properties for cache
+redis.hostName=<%= node['elasticache']['server'] %>
+redis.port=<%= node['elasticache']['port'] %>
+redis.maxTotal=50
+redis.maxIdle=8
+redis.minIdle=8
+redis.maxTotal=100
+
+# IN-1418
+# IN-1428
+# RabbitMQ Section
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.addresses=<%= @rmqaddresses %>
+rabbitmq.enable=<%= node['rabbitmq']['enabled'] %>
+<% end -%>
+

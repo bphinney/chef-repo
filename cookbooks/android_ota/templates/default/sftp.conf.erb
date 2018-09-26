@@ -1,0 +1,86 @@
+#
+# Copyright 2016, Promethean, Inc.
+#
+# Proftpd SFTP Configutation 
+
+LoadModule mod_sql.c
+LoadModule mod_sql_passwd.c
+LoadModule mod_sql_mysql.c
+LoadModule mod_sftp.c
+LoadModule mod_sftp_sql.c
+
+<IfModule mod_sftp.c>
+  <VirtualHost 0.0.0.0>
+        SFTPEngine            on
+        Port                  <%= @sftp_port %>
+        CreateHome            on dirmode 755
+        DefaultRoot           <%= @sftp_root %>
+        RequireValidShell     off
+        Umask                 022
+	User                  nobody
+	Group                 nobody
+	Servername            <%= @host_url %>
+	AllowOverwrite        on
+	DefaultServer         on 
+ 	DenyFilter            \*.*/
+	DisplayChdir          .message true
+        # Welcome message
+	DisplayLogin          welcome.msg
+	DeferWelcome          on
+    
+        # Timeouts
+        TimeoutIdle           1200 # Time allowed without receiving data - Default 600
+        TimeoutLinger         300  # Allowed wait time while closing - Default 30
+        TimeoutLogin          300  # Authentication Time limit - Default 300
+        TimeoutNoTransfer     900  # Time allowed without command - Default 300
+        TimeoutSession        0    # Total connection time - Default 0 (Indefinite)
+        TimeoutStalled        3600 # Time allowed withou a transfer - Default 3600
+
+        SFTPLog               /var/log/proftpd/sftp.log
+        SFTPCompression       delayed
+        # TODO: Comment when done
+        DebugLevel            10
+
+        # Used for clientside identification of host
+        SFTPHostKey           /etc/ssh/ssh_host_rsa_key
+        SFTPHostKey           /etc/ssh/ssh_host_dsa_key
+
+        # NOTE: Configuring password for interim
+        SFTPAuthMethods       password
+        #SFTPAuthMethods       publickey #password
+        # Location for public keys (RFC4716 format)
+        SFTPAuthorizedUserKeys file:/etc/proftpd/authorized_keys
+
+        AuthOrder             mod_sql.c #mod_auth_file.c
+        SQLBackend            mysql
+        SQLAuthTypes          SHA1
+        SQLEngine             on
+        SQLPasswordEngine     on
+        SQLAuthenticate       on
+        SQLUserInfo           users userid passwd uid gid homedir shell
+        SQLGroupInfo          groups groupname gid members
+
+	SQLConnectInfo        <%= @sftp_db -%>@<%= @db_host -%> <%= @sftp_user -%> <%= @sftp_pass %> 
+        SqlLogFile            /var/log/proftpd/sql.log
+
+        SQLUserWhereClause    "disabled != 1"
+
+        # Track login counts
+        SQLLog                PASS updatecount
+        SQLNamedQuery         updatecount UPDATE "login_count=login_count+1, last_login=NOW() WHERE userid='%u'" users
+
+        # Used to track xfer traffic per user (without invoking a quota)
+        SQLLog RETR           bytes-out-count
+        SQLNamedQuery         bytes-out-count UPDATE "bytes_out_used=bytes_out_used+%b WHERE userid='%u'" users
+        SQLLog RETR           files-out-count
+        SQLNamedQuery         files-out-count UPDATE "files_out_used=files_out_used+1 WHERE userid='%u'" users
+
+        SQLLog STOR           bytes-in-count
+        SQLNamedQuery         bytes-in-count UPDATE "bytes_in_used=bytes_in_used+%b WHERE userid='%u'" users
+        SQLLog STOR           files-in-count
+        SQLNamedQuery         files-in-count UPDATE "files_in_used=files_in_used+1 WHERE userid='%u'" users      
+        AllowStoreRestart     on
+        AllowRetrieveRestart  on
+  </VirtualHost>
+</IfModule>
+

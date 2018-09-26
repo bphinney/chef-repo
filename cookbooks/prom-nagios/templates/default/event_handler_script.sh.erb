@@ -1,0 +1,46 @@
+#!/bin/bash
+# Arguments, 1) Service state; 2) State type; 3) Attempt times; 4) Host Address; 5) Service name;
+
+COUNTNUM=1
+
+if [ "$5" == "restart_collabserver" ] || [ "$5" == "restart_activtomcat" ]; then
+   COUNTNUM=15
+fi
+
+if [ "$5" == "start_activtomcat" ]; then
+   COUNTNUM=1 
+fi
+
+if [ "$5" == "restart_activfoundation" ]; then
+   COUNTNUM=10
+fi
+
+if [ "$5" == "restart_apache" ] || [ "$5" == "restart_redis_logstash_server" ]; then
+   COUNTNUM=1
+fi
+    
+
+echo "$1,$2,$3,$4,$5" > /var/log/nagios-event-handler.log
+case "$1" in
+OK)
+        ;;
+WARNING)
+        ;;
+UNKNOWN)
+        ;;
+CRITICAL)
+        case "$2" in
+        SOFT)
+                case "$3" in
+                ${COUNTNUM})
+                        /usr/lib64/nagios/plugins/check_nrpe -H $4 -c $5
+                        ;;
+                esac
+                ;;
+        HARD)
+		/usr/lib64/nagios/plugins/check_nrpe -H $4 -c $5
+                ;;
+        esac
+        ;;
+esac
+exit 0

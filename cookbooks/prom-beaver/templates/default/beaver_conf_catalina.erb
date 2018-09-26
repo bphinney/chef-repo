@@ -1,0 +1,6 @@
+[/opt/tomcat/logs/catalina.out]
+tags: tomcat 
+type: catalina
+add_field: environment,<%= node.chef_environment %>
+multiline_regex_before = ^\s+
+exclude: \.gz

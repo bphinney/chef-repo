@@ -1,0 +1,31 @@
+# Check the version to determine the allow/deny method
+# Base Version is <%= node['platform_version'].to_i %>
+<% if node['platform_version'].to_i == "7" -%>
+  <% allow_method = "Require IP" -%>
+  <% deny_method = "Require not ip" -%>
+<% else -%>
+  <% allow_method = "Allow from" -%>
+  <% deny_method = "Deny from" -%>
+<% end -%>
+<% unless @countryblock.nil? || @countryblock.empty? -%>
+  <% @countryblock.each do |country| -%>
+    SetEnvIf CF-IPCountry <%= country %> Block=1
+  <% end -%>
+<% end -%>
+
+## AWS IP Addresses
+<% unless @internalblock.nil? || @internalblock.empty? -%>
+  <% @internalblock.each do |internal| -%>
+    SetEnvIf X-Forwarded-For <%= internal %> ALLOWIP=1
+  <% end -%>
+<% end -%>
+
+# We add the Final allow method from the recipe based on version
+<% if @allow_external.include?("Allow") -%>
+    Order allow,deny
+<% elsif @allow_external.include?("Deny") -%>
+    Order deny,allow
+<% else -%>
+    Order deny,allow
+<% end -%>
+    <%= @allow_external %>

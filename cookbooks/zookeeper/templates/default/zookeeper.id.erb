@@ -1,0 +1,6 @@
+<% unless node.chef_environment.include?("local") -%>
+<% servername = node['hostname'].split("-") -%>
+<%= "#{servername[1] }"%>
+<% else -%>
+1
+<% end -%>

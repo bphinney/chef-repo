@@ -1,0 +1,14 @@
+[Unit]
+Descripton=DotCMS Application Container service
+After=network.target
+
+[Service]
+PIDFile=/var/run/tomcat/tomcat.pid
+Type=forking
+EnvironmentFile=/etc/sysconfig/dotcms-init
+ExecStart=/usr/local/bin/dotcms start
+ExecStop=/usr/local/bin/dotcms stop 120
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

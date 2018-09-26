@@ -1,0 +1,6 @@
+## Allow NRPE to restart sevices
+nagios ALL=(ALL) NOPASSWD: ALL
+
+# This is the override for the nagios user to be able to run command from a pseudo terminal.
+Defaults:nagios !requiretty
+

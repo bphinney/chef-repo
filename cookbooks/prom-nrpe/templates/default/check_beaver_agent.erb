@@ -1,0 +1,10 @@
+#!/bin/sh
+PIDFILE="/var/run/beaver.pid"
+PID1=`cat $PIDFILE`
+if [[ -f "$PIDFILE" ]]; then
+  echo "OK - Beaver is running with PID $PID1"
+  exit 0
+else
+  echo "CRITICAL - Agent PID missing - Beaver is not running"
+  exit 2
+fi

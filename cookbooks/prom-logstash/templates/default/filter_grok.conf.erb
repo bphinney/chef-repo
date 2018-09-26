@@ -1,0 +1,118 @@
+filter {
+  
+        if [type] == "apache" {
+          date {
+            match => [ "timestamp", "dd/MMM/yyyy:HH:mm:ss Z" ]
+          }
+          # Apache access log formatting
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{COMBINEDAPACHELOG}" }
+            tag_on_failure => [ ]
+          }
+          # Apache error log formatting
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{HTTPD20_ERRORLOG}" }
+            tag_on_failure => [ ]
+          }
+        }
+
+        if [type] == "activfoundation" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "foundation-async" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "flipchart-integration" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "foundation-load" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "foundation-maint" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "foundation-report" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "catalina" {
+          # Catalina
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{MONTHDAY}-%{MONTH}-%{YEAR} %{TIME} %{LOGLEVEL:loglevel}%{SPACE}%{THREAD:thread} %{JAVACLASS:class} %{GREEDYDATA}" }
+          }
+          # Spring Initialization
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{SYSLOGPROG} \|-%{LOGLEVEL:loglevel} in %{JAVACLASS:javaclass}%{GREEDYDATA}" }
+          }                   
+        }
+
+        if [type] == "foundation-management" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "collabserver" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "parent-service" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "global-service" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "authserver" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+        if [type] == "prworld" {
+          grok {
+            patterns_dir => "/etc/logstash/patterns"
+            match => { "message" => "%{DATE} %{TIME} %{THREAD:thread} %{LOGLEVEL:loglevel}%{SPACE}%{JAVACLASS:class} - %{GREEDYDATA}" }
+          }
+        }
+
+}

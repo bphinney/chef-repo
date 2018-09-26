@@ -1,0 +1,15 @@
+#!/bin/bash
+
+function reindx_es () {
+  if ls /opt/tomcat/bin/maint/foundation-maint-*.jar 1> /dev/null 2>&1; then
+    echo "Running foundation-maint for ES reindex"
+    cd /opt/tomcat/bin/maint
+    sudo su -c "java -jar /opt/tomcat/bin/maint/foundation-maint-*.jar -o reindex -t all -c all -m cleanInstall" tomcat & 
+  fi
+}
+
+############################################
+## Main Execution                         ##
+############################################
+
+reindx_es

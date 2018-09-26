@@ -1,0 +1,56 @@
+{
+  "create": {
+    "actors": [
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "read": {
+    "actors": [
+      "CF-PROD3-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "update": {
+    "actors": [
+      "CF-PROD3-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "delete": {
+    "actors": [
+      "CF-PROD3-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  },
+  "grant": {
+    "actors": [
+      "CF-PROD3-LT",
+      "pivotal"
+    ],
+    "groups": [
+      "admins",
+      "clients",
+      "users"
+    ]
+  }
+}

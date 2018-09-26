@@ -1,0 +1,37 @@
+[prometheancommon]
+name=Packages from Promethean - noarch
+baseurl=<%=node['yum']['method']%>://<%= @yum_repository %>/common7
+enabled=1
+gpgcheck=0
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>
+
+[prometheantesting]
+name=Packages from Promethean - testing
+baseurl=<%=node['yum']['method']%>://<%= @yum_repository %>/testing
+enabled=<%= node["yum"]["test_repo"] %>
+<% if node["yum"]["gpgcheck"] == "1" %>
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Promethean
+<% else %>
+gpgcheck=0
+<% end %>
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>
+
+[prometheanrelease]
+name=Packages from Promethean - release
+baseurl=<%=node['yum']['method']%>://<%= @yum_repository %>/release
+enabled=<%= node["yum"]["rel_repo"] %>
+<% if node["yum"]["gpgcheck"] == "1" %>
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Promethean
+<% else %>
+gpgcheck=0
+<% end %>
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>
+
+[prometheanspecial]
+name=Packages from Promethean - special
+baseurl=<%=node['yum']['method']%>://<%= @yum_repository %>/special7
+enabled=1
+gpgcheck=0
+metadata_expire=<%= node["yum"]["promethean"]["metadata_expire"] %>

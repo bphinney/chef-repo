@@ -1,0 +1,78 @@
+server {
+    listen 80;
+    server_name <%= @host_url %>;
+
+    # Redirect to https
+    if ($http_x_forwarded_proto = "http") {
+      rewrite ^/(.*)$ https://$server_name/$1 permanent;
+    }
+
+    root /var/www;
+    index index.html;
+
+    # Download Subdirectory
+    #location /download {
+    #    root /var/www;
+    #    index index.html;
+    #}
+
+    # Location Root for ota4user
+    location /ota4user {
+
+        root /opt;
+        index admin.php;
+
+        # Secure admin page with .htpasswd
+        location ~* .+(?<=admin.php)$ {
+            auth_basic "Restricted";
+            auth_basic_user_file conf.d/.htpasswd;
+
+            ## Disable viewing .htpassword
+            location ~ conf.d/.htpasswd {
+                deny all;
+            }
+
+            include fastcgi_params;
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_index admin.php;
+            fastcgi_keep_conn on;
+        }
+
+        # Retain general access to index.php and apis
+        location ~ [^/]\.php(/|$) {
+            include fastcgi_params;
+            fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+            if (!-f $document_root$fastcgi_script_name) {
+                return 404;
+            }
+
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_index index.php;
+            fastcgi_keep_conn on;
+        }
+    }
+
+    # Location Root for Proftpd Admin
+    location /admin {
+        # Secure access for admin page
+        auth_basic "Restricted";
+        auth_basic_user_file conf.d/.htpasswd;
+
+        root /opt/proftpd_admin;
+        index index.php;
+
+        location ~ [^/]\.php(/|$) {
+                include fastcgi_params;
+                fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+                if (!-f $document_root$fastcgi_script_name) {
+                    return 404;
+                }
+                fastcgi_pass 127.0.0.1:9000;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_index index.php;
+                fastcgi_keep_conn on;
+        }
+    }
+}

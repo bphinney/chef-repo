@@ -1,0 +1,10 @@
+#!/bin/bash
+# Commenting out the loop that runs chef-client multiple times
+# this was done due to omnibus updater and that has been removed.
+#runa=1
+#while [[ $runa -ne $runb ]]; do
+#  runb=$runa
+#  runa=`/usr/bin/chef-client $@ | tee /dev/tty | wc -l`
+#done
+/usr/bin/chef-client $@ | tee /dev/tty | wc -l
+

@@ -1,0 +1,73 @@
+%YAML 1.2
+---
+Application:
+  license_key: <%= node['newrelic']['license'] %>
+  wake_interval: 60
+
+  <% if node.run_list.roles.include?("frontend") -%>
+  apache_httpd:
+    name: <%= node["hostname"] %>
+    scheme: http
+    host: localhost
+    port: 80
+    path: /server-status
+    #verify_ssl_cert: true
+
+  #php_fpm:
+  #  - name: <%= node["hostname"] %>
+  #    scheme: http
+  #    host: localhost
+  #    port: 80
+  #    path: /fpm_status
+  #    query: json
+  <% end -%>
+
+  <% if node.run_list.roles.include?("collabfront") -%>
+  haproxy:
+    name: <%= node["hostname"] %>
+    scheme: http
+    host: causer:capass@localhost
+    port: 7080
+    #verify_ssl_cert: true
+    path: /stats;csv
+  <% end -%>
+
+  <% if node.recipes.include?("prom-rabbitmq") -%>
+  rabbitmq:
+    name: <%= node["hostname"] %>
+    host: localhost
+    port: 15672
+    verify_ssl_cert: true
+    username: <%= node['rabbitmq']['default_user'] %>
+    password: <%= node['rabbitmq']['default_pass'] %>
+  #  vhosts: # [OPTIONAL, track this vhosts' queues only]
+  #    production_vhost:
+  #      queues: [encode_video, ] # [OPTIONAL, track this queues only]
+  #    staging_vhost: # [track every queue for this vhost]
+  
+  <% end -%>
+
+Daemon:
+  user: newrelic
+  pidfile: /var/run/newrelic/newrelic-plugin-agent.pid
+
+Logging:
+  formatters:
+    verbose:
+      format: '%(levelname) -10s %(asctime)s %(process)-6d %(processName) -15s %(threadName)-10s %(name) -25s %(funcName) -25s L%(lineno)-6d: %(message)s'
+  handlers:
+    file:
+      class : logging.handlers.RotatingFileHandler
+      formatter: verbose
+      filename: /var/log/newrelic/newrelic-plugin-agent.log
+      maxBytes: 10485760
+      backupCount: 3
+  loggers:
+    newrelic_plugin_agent:
+      level: INFO
+      propagate: True
+      handlers: [console, file]
+    requests:
+      level: ERROR
+      propagate: True
+      handlers: [console, file]

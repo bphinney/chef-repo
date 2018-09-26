@@ -1,0 +1,42 @@
+<included>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg \(%file:%line\) %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${catalina.base}/logs/foundation-etl-app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>${catalina.base}/logs/foundation-etl-app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- Keep 35 days worth of logs -->
+            <maxHistory>5</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 10MB -->
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg \(%file:%line\) %n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="promethean" level="DEBUG"/>
+    <logger name="promethean.hibernate" level="INFO"/>
+    <logger name="promethean.fconfig.manager" level="INFO"/>
+    <logger name="promethean.collaboration.handler" level="INFO"/>
+    <logger name="org.springframework.security.saml" level="WARN"/>
+    <logger name="org.opensaml" level="INFO"/>
+    <logger name="promethean.conversion.AsposeLicenseManager" level="DEBUG"/>
+    <logger name="org.apache.zookeeper.ClientCnxn" level="WARN"/>
+
+    <root level="INFO">
+        <!--appender-ref ref="STDOUT" /-->
+        <appender-ref ref="ROLLING" />
+    </root>
+</included>
+

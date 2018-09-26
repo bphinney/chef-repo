@@ -1,0 +1,8 @@
+#!/bin/bash
+cd ~/chef-repo
+git pull
+git submodule init
+git submodule update
+cd cookbooks
+for i in `ls`; do knife cookbook upload $i; done
+echo "Cookbooks updated"

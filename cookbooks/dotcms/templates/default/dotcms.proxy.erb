@@ -1,0 +1,27 @@
+ProxyRequests             Off
+ProxyPreserveHost         On
+
+<Proxy balancer://dotcms>
+
+    DirectoryIndex index.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+    <% @dotcmsworkers.each do |a| -%>
+    BalancerMember http://<%= a['ipaddress'] %>:8080 route=<%= a['ipaddress'] %>
+    <% end -%>
+
+</Proxy>
+
+<Location ~ "^/api/widget/(.*)">
+    ProxyPassMatch          balancer://dotcms
+</Location>
+
+<Location ~ "^/(html|admin|c/portal)(.*)">
+    ProxyPassMatch          balancer://dotcms
+    Include conf.d/.dotcmsaccess
+</Location>
+
+<Location ~ "^/(?!(<%= node['dotcms']['path_exclude_list'] %>)(.*))">
+    ProxyPassMatch          balancer://dotcms
+</Location>

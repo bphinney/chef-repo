@@ -1,0 +1,3 @@
+#!/bin/sh
+find /var/log/logstash/ -name \*.log\* -mtime +5 -exec rm -rf {} \;
+

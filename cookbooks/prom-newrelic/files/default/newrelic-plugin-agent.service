@@ -1,0 +1,12 @@
+[Unit]
+Description=New Relic Plugin for 
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/newrelic-plugin-agent.pid
+ExecStart='/usr/bin/newrelic-plugin-agent -c /etc/newrelic/newrelic-plugin-agent.cfg'
+ExecStop=kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

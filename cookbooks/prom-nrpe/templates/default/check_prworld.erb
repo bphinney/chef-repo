@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# This will heartbeat the prometheanworld server at ${check_url}.
+# It will fail if it takes longer than ${timeout} seconds to respond or produces an error.
+# It will succeed on a ${responsecode} response only.
+# It will bypass the check if the server was restarted ${waittime} minutes ago or less.
+
+# Define constants
+check_url='https://www.prometheanworld.com'
+timeout='30'
+responsecode='200'
+waittime='15'
+heartbeatfile='/tmp/prw_heartbeat'
+
+# Set default 'OK' Error code
+prw_code=0
+
+# Conditional chain to test for site liveliness
+if test `find ${heartbeatfile} -mmin -${waittime}`; then
+  prw_message="OK - Server started less than ${waittime}m ago, check bypassed."
+else
+  export prw_curl=`curl -s -I -m ${timeout} ${check_url} | head -1 | awk '{print $2}'`
+  if [[ $prw_curl == $responsecode ]]; then
+    prw_message="OK - PRWorld responded with HTTP ${responsecode}."
+  else
+    prw_code=1
+    if [[ $prw_curl == '' ]]; then
+      prw_message="CRITICAL - PRWorld did not respond!"
+    else
+      prw_message="CRITICAL - PRWorld responded with HTTP ${prw_curl}!"
+    fi
+  fi
+fi
+
+# Deliver response to nagios
+echo "${prw_message}"
+exit $prw_code

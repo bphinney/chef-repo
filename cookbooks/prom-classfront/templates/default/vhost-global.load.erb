@@ -1,0 +1,94 @@
+    RewriteEngine On
+<% if node['apache']['aflbmethod'] == "http" -%>
+    Include conf.d/activfoundation.proxy
+<% elsif node['apache']['aflbmethod'] == "ajp" -%>
+    Include conf.d/activfoundation.jkload
+<% end -%>
+<% if File.exists?("/etc/httpd/conf.d/parent-service.proxy") -%>
+   # IN-1414
+   Include conf.d/parent-service.proxy
+<% end -%>
+<% if File.exists?("/etc/httpd/conf.d/afmanager.proxy") -%>
+   Include conf.d/afmanager.proxy
+<% end -%>
+<% if File.exists?("/etc/httpd/conf.d/authserver.proxy") -%>
+   Include conf.d/authserver.proxy
+<% end -%>
+<% if File.exists?("/etc/httpd/conf.d/store-service.proxy") -%>
+   Include conf.d/store-service.proxy
+<% end -%>
+   #Include conf.d/cors.load
+
+# Rewrite to remove www
+    RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+    RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+    
+# Rewrite rule for favicon.ico file
+    RewriteCond %{REQUEST_URI} ^/favicon.ico$
+    RewriteRule ^/favicon.ico$ /static/favicon.ico [L,R]
+
+    FileETag -INode +MTime +Size
+    #RequestHeader  edit "If-None-Match" "^\"(.*)-gzip\"$" "\"$1\""
+    #Header  edit "ETag" "^\"(.*[^g][^z][^i][^p])\"$" "\"$1-gzip\""
+
+<% if node['apache']['maintenance'] == "true" && `rpm -qa | grep maintenance` -%>
+    Include conf.d/maintenance.redirect
+<% end -%>
+
+Alias /classflow     /opt/www/classflow
+Alias /teacher       /opt/www/classflow
+<Directory "/opt/www/classflow">
+    Options -Indexes
+    DirectoryIndex index.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+</Directory>
+
+<% if "test -d /opt/www/learner" -%>
+Alias /learner /opt/www/learner
+Alias /student /opt/www/learner
+<Directory "/opt/www/learner">
+      Options -Indexes
+      AllowOverride AuthConfig Limit
+      Include conf.d/.htaccess
+</Directory>
+<% end -%>
+
+<% if "test -d /opt/www/uappapi" -%>
+Alias /uappapi       /opt/www/uappapi
+<Directory "/opt/www/uappapi">
+      Options -Indexes
+      AllowOverride AuthConfig Limit
+      Include conf.d/.htaccess
+</Directory>
+<% end -%>
+
+<% if "test -d /opt/www/maintenance" -%>
+Alias /maintenance   /opt/www/maintenance
+<Directory "/opt/www/maintenance">
+    Options -Indexes
+    DirectoryIndex index.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+</Directory>
+<% end -%>
+
+<% if "test -d /opt/www/netcheck" -%>
+Alias /netcheck    /opt/www/netcheck
+<Directory "/opt/www/netcheck">
+    Options -Indexes
+    DirectoryIndex check.html
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+
+</Directory>
+<% end -%>
+
+<% if "test -d /opt/www/static" -%>
+Alias /static    /opt/www/static
+<Directory "/opt/www/static">
+    Options -Indexes
+    AllowOverride AuthConfig Limit
+    Include conf.d/.htaccess
+</Directory>
+<% end -%>

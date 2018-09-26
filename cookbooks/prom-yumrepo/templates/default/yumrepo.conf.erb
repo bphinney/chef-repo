@@ -1,0 +1,38 @@
+# Check the version to determine the allow/deny method
+# Base Version is <%= node['platform_version'].to_i %>
+<% if node['platform_version'].to_i == "7" -%>
+  <% allow_method = "Require IP" -%>
+  <% deny_method = "Require not ip" -%>
+  <% deny_all = "Require all denied" -%>
+<% else -%>
+  <% allow_method = "Allow from" -%>
+  <% deny_method = "Deny from" -%>
+  <% deny_all = "Deny from all" -%>
+<% end -%>
+<VirtualHost  *:80>
+    ServerAdmin webmaster@<%= node['yum']['yumrepo_domain'] %>
+    DocumentRoot <%= node['yum']['yumrepo_data'] %>/yum-repo/
+    ServerName <%= node['yum']['yumrepo_server'] %>.<%= node['yum']['yumrepo_domain'] %>
+    ErrorLog logs/<%= node['yum']['yumrepo_server'] %>-error_log
+    CustomLog logs/<%= node['yum']['yumrepo_server'] %>-access_log common
+
+<% %w{common core release special}.each do |dir| -%>
+    Alias /<%= dir %> <%= node['yum']['yumrepo_data'] %>/yum-repo/<%= dir %>
+    <Directory <%= node['yum']['yumrepo_data'] %>/yum-repo/<%= dir %>>
+     Options Indexes
+     Order allow,deny
+  <% node['yum']['yumrepo_allowip'].each do |allowip| -%>
+    <%= allow_method %> <%= allowip %>
+  <% end -%>
+    </Directory>
+
+<% end -%>
+
+    <Directory <%= node['yum']['yumrepo_data'] %>/yum-repo/>
+     Options -Indexes
+     Order allow,deny
+     <%= deny_all %>
+     #Allow from none
+    </Directory> 
+
+</VirtualHost>

@@ -1,0 +1,9 @@
+#>*******************************************************
+#> Migrated to database at jdbc:mysql://atlassian.cj4p5xuql9rs.us-east-1.rds.amazonaws.com:3306/stash_db?autoReconnect=true&characterEncoding=utf8&useUnicode=true&sessionVariables=storage_engine%3DInnoDB
+#> Updated on 2013-06-18T15:40:32.270Z
+#>*******************************************************
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://<%= node['stash_dbserver'] %>/stash_db?autoReconnect=true&characterEncoding=utf8&useUnicode=true&sessionVariables=storage_engine%3DInnoDB
+jdbc.user=stash_user
+jdbc.password=stash_pass
+throttle.resource.scm-hosting=20

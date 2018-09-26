@@ -1,0 +1,14 @@
+#!/bin/bash
+[[ $1 != '' ]] && {
+  nodelist=$1
+} || {
+  echo " ** Examining chef daemon processes by node, stand by ** "
+  nodelist=`knife node list`
+}
+for i in $nodelist; do 
+  [[ `ssh -o ConnectTimeOut=5 $i ps aux \| grep -oP \"[c]hef-client -d\" 2>\&1` == 'chef-client -d' ]] && { 
+    echo "$i is daemonized."; 
+  } || { 
+    echo "$i is not daemonized."; 
+  }
+done

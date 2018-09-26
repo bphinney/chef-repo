@@ -1,0 +1,22 @@
+#!/bin/bash
+
+function drop_af_schemas(){
+  mysql -u root --password=root --host=<%= node['database']['dbservername']%> -e 'show databases;' 2>/dev/null
+  if [ $? -eq 0 ]; then
+     MYSQL_PWD="root" mysql --host=<%= node['database']['dbservername']%> -u root -e 'drop database if exists <%= node['af']['activfoundb']%>;'
+  else
+    echo "ActivFoundation schema has been dropped."
+fi 
+}
+
+function create_af_schema(){
+  mysql --host=<%= node['database']['dbservername'] %> -u root --password=root -e 'CREATE DATABASE IF NOT EXISTS <%= node['af']['activfoundb'] %> CHARACTER SET utf8 COLLATE utf8_general_ci; GRANT ALL ON <%= node['af']['activfoundb'] %>.* TO "<%= node['af']['activfoundbuser'] %>"@"%" identified by "<%= node['af']['activfoundbpass'] %>";'
+  echo "ActivFoundation schema created"
+}
+
+##########################
+## Main Execution Order ##
+##########################
+
+drop_af_schemas
+create_af_schema

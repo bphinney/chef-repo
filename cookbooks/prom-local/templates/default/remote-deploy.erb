@@ -1,0 +1,577 @@
+#!/bin/bash
+### --------------------
+### Remote-Deploy v2.0.0
+### --------------------
+
+### Define functions
+rpmchoose () {
+  taglist=`yum --disablerepo="*" --enablerepo="promethean*" --showduplicates list | grep -P "(prometheantesting|prometheanrelease)" | grep -P "^$1" | tail -8 | grep -oP "[0-9]+\.[0-9]+\.[0-9]+\-[0-9]+" | sort | uniq` 
+  selection='start'
+  until [ z${selection} == "z" ]; do
+    clear
+    echo "Currently Selected Tag for $1: ( `cat /opt/storage/rpmlist.txt | grep $1` )"
+    echo "Recent Tags for $1:"
+    echo "Choose A Tag (Or enter your own):"
+    z=0
+    for itag in `echo $taglist`; do
+      z=$(( z + 1 ))
+      echo "  ${z}) $1-${itag}"
+    done
+    echo "  0) Do not deploy an RPM for $1"
+    echo " "
+    echo " Choose an option or hit ENTER to return to RPM selection menu"
+    read selection
+    case "z$selection" in
+      z0)
+        newlist=`cat /opt/storage/rpmlist.txt | grep -v $1`
+        echo "$newlist" > /opt/storage/rpmlist.txt
+        ;;
+      z1|z2|z3|z4|z5|z6|z7|z8)
+        newlist=`cat /opt/storage/rpmlist.txt | grep -v $1`
+        echo "$newlist" > /opt/storage/rpmlist.txt
+        echo "$1-`echo "$taglist" | head -${selection} | tail -1`" >> /opt/storage/rpmlist.txt
+        ;;
+      z)
+        echo "RPM selection for $1 complete."
+        ;;
+      *)
+        newlist=`cat /opt/storage/rpmlist.txt | grep -v $1`
+        echo "$newlist" > /opt/storage/rpmlist.txt
+        echo "$1-$selection" >> /opt/storage/rpmlist.txt
+    esac
+  done
+}
+
+### Prep last deployment options
+[[ -f /opt/storage/branch.txt ]] || {
+  echo "Preparing remote-deploy for first time use..."
+  sleep 1
+  sudo touch /opt/storage/branch.txt
+  sudo chmod 666 /opt/storage/branch.txt
+  echo "major" > /opt/storage/branch.txt
+}
+[[ -f /opt/storage/rdtype.txt ]] || {
+  sudo touch /opt/storage/rdtype.txt
+  sudo chmod 666 /opt/storage/rdtype.txt
+  echo "full" > /opt/storage/rdtype.txt
+}
+[[ -f /opt/storage/creds.txt ]] || {
+  sudo touch /opt/storage/creds.txt
+  sudo chmod 666 /opt/storage/creds.txt
+}
+[[ -f /opt/storage/chef.txt ]] || {
+  sudo touch /opt/storage/chef.txt
+  sudo chmod 666 /opt/storage/chef.txt
+  echo "on" > /opt/storage/chef.txt
+}
+[[ -f /opt/storage/rpmlist.txt ]] || {
+  sudo touch /opt/storage/rpmlist.txt
+  sudo chmod 666 /opt/storage/rpmlist.txt
+}
+[[ -f /opt/storage/starttomcat.txt ]] || {
+  sudo touch /opt/storage/starttomcat.txt
+  sudo chmod 666 /opt/storage/starttomcat.txt
+  echo "on" > /opt/storage/starttomcat.txt
+}
+# Store schema provisioning status
+[[ -f /opt/storage/schema.txt ]] || {
+  sudo touch /opt/storage/schema.txt
+  sudo chmod 666 /opt/storage/schema.txt
+}
+
+
+# Main Menu
+answer='start'
+until [ a${answer} == "a" ]; do
+  clear
+  echo "-------------------------"
+  echo "))))) REMOTE-DEPLOY ((((("
+  echo "-------------------------"
+  echo " "
+  echo " Change conditions:"
+  [[ `cat /opt/storage/creds.txt` != '' ]] && {
+  echo "  1) Log in as new user (currently logged in as `cat /opt/storage/creds.txt | cut -f1 -d' '`)"
+  } || {
+  echo "  1) Enter bamboo credentials"
+  }
+  echo "  2) Change deployment branch (current branch: `cat /opt/storage/branch.txt`)"
+  case `cat /opt/storage/rdtype.txt` in
+    full)
+      echo "  3) Change deployment type (current type: full deployment)"
+      ;;
+    front)
+      echo "  3) Change deployment type (current type: deploy frontend only)"
+      ;;
+    back)
+      echo "  3) Change deployment type (current type: deploy backend only)"
+      ;;
+    rpm)
+      echo "  3) Change deployment type (current type: deploy RPMs)"
+      ;;
+    *)
+      echo "  3) Change deployment type (current type: UNKNOWN TYPE)"
+      ;;
+  esac
+  case `cat /opt/storage/chef.txt` in
+    on)
+      echo "  4) Toggle chef-run before deployment (currently ON)"
+      ;;
+    off)
+      echo "  4) Toggle chef-run before deployment (currently OFF)"
+      ;;
+    *)
+      echo "  4) Turn on chef-run before deployment (currently UNKNOWN)"
+      ;;
+  esac
+  case `cat /opt/storage/starttomcat.txt` in
+    on)
+      echo "  5) Start tomcat after backend deployment (currently ON)"
+      ;;
+    off)
+      echo "  5) Start tomcat after backend deployment (currently OFF)"
+      ;;
+    *)
+      echo "  5) Start tomcat after backend deployment (currently UNKNOWN)"
+      ;;
+  esac
+  echo " "
+  echo " Hit ENTER to proceed. "
+  read answer
+  case "a${answer}" in
+    a1)
+      echo "Enter username:"
+      read eu
+      echo "Enter Password:"
+      read ep
+      echo "$eu $ep" > /opt/storage/creds.txt
+      ;;
+    a2)
+      echo "Available branches:"
+      echo "  1) Major"
+      echo "  2) Minor"
+      echo "  3) Use RPMs"
+      echo "Choose a branch:"
+      read eb
+      case $eb in
+        1)
+          echo 'major' > /opt/storage/branch.txt
+          ;;
+        2)
+          echo 'minor' > /opt/storage/branch.txt
+          ;;
+        3)
+          echo 'rpm' > /opt/storage/branch.txt
+          echo 'rpm' > /opt/storage/rdtype.txt
+          echo 'on' > /opt/storage/chef.txt
+          menu='start'
+          until [ b${menu} == "b" ]; do
+            clear
+            echo "----------------------"
+            echo "))))) RPM-DEPLOY ((((("
+            echo "----------------------"
+            echo " "
+            echo " Choose RPMs:"
+            echo " "
+            echo "  1) Activfoundation ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep activfoundation` )"
+            echo "  2) Flipchart ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep flipchart` )"
+            echo "  3) Foundation-Maint ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep foundation-maint` )"
+            echo "  4) Classflow ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep classflow` )"
+            echo "  5) Learner ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep learner` )"
+            echo "  6) UI-Admin ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep uiadmin` )"
+            echo "  7) Foundation-Report ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep foundation-report` )"
+            echo "  8) Foundation-Maintenance ( RPM Selected: `cat /opt/storage/rpmlist.txt | grep foundation-maintenance` )"
+            echo " "
+            echo " Choose an option or hit ENTER to exit:"
+            read menu
+            case "b${menu}" in
+              b1)
+                rpmchoose activfoundation
+                ;;
+              b2)
+                rpmchoose flipchart
+                ;;
+              b3)
+                rpmchoose foundation-maint
+                ;;
+              b4)
+                rpmchoose classflow
+                ;;
+              b5)
+                rpmchoose learner
+                ;;
+              b6)
+                rpmchoose uiadmin
+                ;;
+              b7)
+                rpmchoose foundation-report
+                ;;
+              b8)
+                rpmchoose foundation-maintenance
+                ;;
+              b)
+                echo "RPM selection complete.  Returning to main menu..."
+                sleep 1
+                ;;
+              *)
+                echo "Error: Input not recognized."
+                sleep 1
+                ;;
+            esac
+          done
+          ;;
+        *)
+          echo "ERROR: Input not recognized, no changes made."
+          sleep 1
+          ;;
+      esac
+      ;;
+    a3)
+      echo "Available deployment types:"
+      echo "  1) Full Deployment"
+      echo "  2) Frontend Only"
+      echo "  3) Backend Only"
+      echo "Choose a deployment type:"
+      read ed
+      case $ed in
+        1)
+          echo 'full' > /opt/storage/rdtype.txt
+          ;;
+        2)
+          echo 'front' > /opt/storage/rdtype.txt
+          ;;
+        3)
+          echo 'back' > /opt/storage/rdtype.txt
+          ;;
+        *)
+          echo "ERROR: Input not recognized, no changes made."
+          sleep 1
+          ;;
+      esac
+      ;;
+    a4)
+      [[ `cat /opt/storage/chef.txt` == 'on' ]] && {
+        echo "off" > /opt/storage/chef.txt
+      } || {
+        echo "on" > /opt/storage/chef.txt
+      }
+      ;;
+    a5)
+      [[ `cat /opt/storage/starttomcat.txt` == 'on' ]] && {
+        echo "off" > /opt/storage/starttomcat.txt
+      } || {
+        echo "on" > /opt/storage/starttomcat.txt
+      }
+      ;;
+    a)
+      echo "Beginning deployment..."
+      ;;
+    *)
+      echo "ERROR: Option not recognized."
+      ;;
+  esac
+done
+
+# Store creds if not present
+[[ `cat /opt/storage/creds.txt` == '' ]] && {
+  sudo touch /opt/storage/creds.txt
+  sudo chmod 666 /opt/storage/creds.txt
+  echo "Enter username:"
+  read eu
+  echo "Enter Password:"
+  read ep
+  echo "$eu $ep" > /opt/storage/creds.txt
+}
+
+# Dump stored creds into user
+user=`cat /opt/storage/creds.txt | cut -f1 -d' '`
+password=`cat /opt/storage/creds.txt | cut -f2 -d' '`
+
+# Run chef if requested
+[[ `cat /opt/storage/chef.txt` == 'on' ]] && {
+  sudo /usr/local/bin/chef-run
+}
+
+
+### Install Artifacts or RPMs
+cd /opt/storage
+
+# Remove RPMs and install again if requested - run chef again to repopulate missing elements if needed
+runchef="false"
+for irpm in `cat /opt/storage/rpmlist.txt`; do
+  [[ `rpm -qa | grep $irpm` == '' ]] || {
+    sudo yum remove -y $irpm
+    runchef="true"
+  }
+  [[ $runchef == 'true' && `cat /opt/storage/branch.txt` != 'rpm' ]] && {
+    sudo chef-client
+  }
+done
+
+[[ `cat /opt/storage/branch.txt` == 'rpm' ]] && {
+  whencomplete=" "
+  echo "Branch Selected: Deploy RPMs"
+  for irpm in `cat /opt/storage/rpmlist.txt`; do
+    sudo yum install -y $irpm
+    case `echo $irpm | grep -oP "^[^\-]+"` in
+      activfoundation|flipchart|foundation)
+        whencomplete="restart"
+        ;;
+      learner|classflow|uiadmin|uappapi)
+        sudo service httpd restart
+        sudo service haproxy restart
+        sleep 3
+        sudo service httpd reload
+        ;;
+    esac
+  done
+  [[ $whencomplete == 'restart' ]] && {
+    sudo rm -rf /opt/tomcat/logs/*.log
+    sudo rm -rf /opt/vertx/logs/*.log
+    sudo rm -rf /opt/tomcat/logs/catalina.*
+    # Run db-setup on first run of remote-deploy
+    [[ `cat /opt/storage/schema.txt` != "provisioned" ]] && {
+      echo "Provisioning Initial Schemas"
+      sudo db-setup
+      echo "provisioned" > /opt/storage/schema.txt
+    }
+    sudo service activtomcat restart
+    sudo service collabserver restart
+  }
+}
+
+# Pull major branch artifacts for frontend/backend as indicated by user
+[[ `cat /opt/storage/branch.txt` == 'major' ]] && {
+  echo "Branch selected: Major"
+  [[ `cat /opt/storage/rdtype.txt` == 'full' || `cat /opt/storage/rdtype.txt` == 'front' ]] && {
+    echo "Pulling Major Frontend Artifacts..."
+
+    echo "Deploying UI-Classflow"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-UMA/latestSuccessful/artifact/shared/classflow/dist.zip
+    sudo rm -f classflow.zip
+    sudo mv dist.zip classflow.zip
+
+    echo "Deploying UI-Learner"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-ULM/latestSuccessful/artifact/shared/ui-learner/dist.zip
+    sudo rm -f learner.zip
+    sudo mv dist.zip learner.zip
+
+    echo "Deploying UI-Admin"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-ADMN/latestSuccessful/artifact/shared/ui-admin/dist.zip
+    sudo rm -f management.zip
+    sudo mv dist.zip management.zip
+
+    echo "Deploying UI-Api"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-UAM/latestSuccessful/artifact/shared/ui-api/dist.zip
+    sudo rm -f uappapi.zip
+    sudo mv dist.zip uappapi.zip
+  }
+  [[ `cat /opt/storage/rdtype.txt` == 'full' || `cat /opt/storage/rdtype.txt` == 'back' ]] && {
+    echo "Pulling Major Backend Artifacts..."
+
+    echo "Deploying Activfoundation"
+    sudo rm -f activfoundation.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FMB/latestSuccessful/artifact/shared/activfoundation/activfoundation.war
+
+    echo "Deploying Collabserver"
+    sudo rm -f collabserver*.jar
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FCMB/latestSuccessful/artifact/shared/Collabserver-Jarfile/collabserver.jar
+
+    echo "Deploying Authserver"
+    sudo rm -f authserver.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FAMB/latestSuccessful/artifact/shared/Authserver-Warfile/authserver.war
+
+    echo "Deploying Foundation-Report"
+    sudo rm -f foundation-report.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FRMB/latestSuccessful/artifact/shared/foundation-report/foundation-report.war 
+
+    echo "Deploying Foundation-Async"
+    sudo rm -f foundation-async.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FAB/latestSuccessful/artifact/shared/activfoundation_async/foundation-async.war 
+
+    echo "Deploying Foundation-Management"
+    sudo rm -f foundation-management.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FMNGMB/latestSuccessful/artifact/shared/foundation-management/foundation-management.war
+
+    echo "Deploying Global-service"
+    sudo rm -f global-service.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-GSMB/latestSuccessful/artifact/shared/global-service/global-service.war
+
+    echo "Deploying Parent-service"
+    sudo rm -f parent-service.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-PSMB/latestSuccessful/artifact/shared/parent-service/parent-service.war
+
+    echo "Deploying Foundation-Etl"
+    sudo rm -f foundation-etl.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FETLAMB/latestSuccessful/artifact/shared/foundation-etl/foundation-etl.war
+
+    echo "Deploying Flipchart Components"
+    sudo rm -f flipchart-integration.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LM/latestSuccessful/artifact/shared/flipchart-integration/flipchart-integration.war
+    sudo rm -f libflipchart2lesson.so.1.1.1
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LM/latestSuccessful/artifact/shared/flipchart2lesson/libflipchart2lesson.so.1.1.1
+    sudo rm -f libflipcharts.so
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LM/latestSuccessful/artifact/shared/libflipcharts-library/libflipcharts.so
+    sudo rm -f flipchart-cmdline
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LM/latestSuccessful/artifact/shared/flipchart-cmdline/flipchart-cmdline
+    sudo rm -f thumbnails-cmdline
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LM/latestSuccessful/artifact/shared/thumbnails-cmdline/thumbnails-cmdline
+
+    echo "Deploying Foundation-Maint"
+    sudo rm -f foundation-maint-assembled.jar
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/artifact/BAC-FMMB/shared/build-latestSuccessful/foundation-maint/foundation-maint-assembled.jar 
+    # configure foundation-maint
+    sudo rm -rf /opt/tomcat/bin/maint; sudo mkdir -p /opt/tomcat/bin/maint; sudo mv /opt/storage/foundation-maint-assembled.jar /opt/tomcat/bin/maint; cd /opt/tomcat/bin/maint; sudo jar xf /opt/tomcat/bin/maint/foundation-maint-assembled.jar; sudo chown -R tomcat. /opt/tomcat/bin/maint; sudo rm -f /opt/tomcat/bin/maint/foundation-maint-assembled.jar 
+  }
+}
+
+# Pull minor branch artifacts for frontend/backend as indicated by user
+[[ `cat /opt/storage/branch.txt` == 'minor' ]] && {
+  echo "Branch selected: Minor"
+  [[ `cat /opt/storage/rdtype.txt` == 'full' || `cat /opt/storage/rdtype.txt` == 'front' ]] && {
+    echo "Pulling Minor Frontend Artifacts..."
+
+    echo "Deploying UI-Classflow"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-UITEACH/latestSuccessful/artifact/shared/classflow/dist.zip
+    sudo rm -f classflow.zip
+    sudo mv dist.zip classflow.zip
+
+    echo "Deploying UI-Learner"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-UIMOBILE/latestSuccessful/artifact/shared/ui-learner/dist.zip
+    sudo rm -f learner.zip
+    sudo mv dist.zip learner.zip
+
+    echo "Deploying UI-Admin"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-ADMM/latestSuccessful/artifact/shared/ui-admin/dist.zip
+    sudo rm -f management.zip
+    sudo mv dist.zip management.zip
+
+    echo "Deploying UI-Api"
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/UI-UAMI/latestSuccessful/artifact/shared/ui-api/dist.zip
+    sudo rm -f uappapi.zip
+    sudo mv dist.zip uappapi.zip
+  }
+  [[ `cat /opt/storage/rdtype.txt` == 'full' || `cat /opt/storage/rdtype.txt` == 'back' ]] && {
+    echo "Pulling Minor Backend Artifacts..."
+
+    echo "Deploying Activfoundation"
+    sudo rm -f activfoundation.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FOUND/latestSuccessful/artifact/shared/activfoundation/activfoundation.war
+
+    echo "Deploying Collabserver"
+    sudo rm -f collabserver*.jar
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FCMIB/latestSuccessful/artifact/shared/Collabserver-Jarfile/collabserver.jar
+
+    echo "Deploying Foundation-Report"
+    sudo rm -f foundation-report.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FRNB/latestSuccessful/artifact/shared/foundation-report/foundation-report.war
+
+    echo "Deploying Foundation-Async"
+    sudo rm -f foundation-async.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FABD/latestSuccessful/artifact/shared/activfoundation_async/foundation-async.war
+
+    echo "Deploying Foundation-Management"
+    sudo rm -f foundation-management.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FMGMB/latestSuccessful/artifact/shared/foundation-management/foundation-management.war
+
+    echo "Deploying Foundation-Etl"
+    sudo rm -f foundation-etl.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FETLAMIB/latestSuccessful/artifact/shared/foundation-etl/foundation-etl.war
+
+    echo "Deploying Flipchart Components"
+    sudo rm -f flipchart-integration.war
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LD/latestSuccessful/artifact/shared/flipchart-integration/flipchart-integration.war
+    sudo rm -f libflipchart2lesson.so.1.1.1
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LD/latestSuccessful/artifact/shared/flipchart2lesson/libflipchart2lesson.so.1.1.1
+    sudo rm -f libflipcharts.so
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LD/latestSuccessful/artifact/shared/libflipcharts-library/libflipcharts.so
+    sudo rm -f flipchart-cmdline
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LD/latestSuccessful/artifact/shared/flipchart-cmdline/flipchart-cmdline
+    sudo rm -f thumbnails-cmdline
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-F2LD/latestSuccessful/artifact/shared/thumbnails-cmdline/thumbnails-cmdline
+
+    echo "Deploying Foundation-Maint"
+    sudo rm -f foundation-maint-assembled.jar
+    sudo curl --silent --user $user:$password -O https://bamboo.prometheanjira.com/browse/BAC-FMNB/latestSuccessful/artifact/shared/foundation-maint/foundation-maint-assembled.jar
+    # configure foundation-maint 
+    sudo rm -rf /opt/tomcat/bin/maint; sudo mkdir -p /opt/tomcat/bin/maint; sudo mv /opt/storage/foundation-maint-assembled.jar /opt/tomcat/bin/maint; cd /opt/tomcat/bin/maint; sudo jar xf /opt/tomcat/bin/maint/foundation-maint-assembled.jar; sudo chown -R tomcat. /opt/tomcat/bin/maint; sudo rm -f /opt/tomcat/bin/maint/foundation-maint-assembled.jar
+  }
+}
+
+### Deploy artifacts, if downloaded
+# Deploying frontend
+[[ `cat /opt/storage/rdtype.txt` == 'full' || `cat /opt/storage/rdtype.txt` == 'front' ]] && {
+  echo "Deploying Frontend..."
+  for i in classflow learner management uappapi; do
+    [[ -f "/opt/storage/$i.zip" ]] && {
+      cd /opt/www/$i
+      sudo rm -rf *
+      sudo unzip /opt/storage/$i.zip > /dev/null 2>&1
+      sudo rm -rf /opt/storage/$i.zip
+      if [ -d dist ]; then
+        sudo mv dist/* ./
+        sudo rm -rf dist
+      fi
+    } || {
+      echo "/opt/storage/$i.zip not present"
+    }
+  done
+  sudo service httpd restart
+  sudo service haproxy restart
+  sleep 2
+  sudo service httpd reload  
+}
+
+# Deploying backend
+[[ `cat /opt/storage/rdtype.txt` == 'full' || `cat /opt/storage/rdtype.txt` == 'back' ]] && {
+  echo "Deploying Backend..."
+  sudo service activtomcat stop
+  for h in `ls /opt/storage/*.war 2>/dev/null`; do
+    count=`echo $h | grep -o '/' | wc -l`
+    field=$(( $count + 1 ))
+    app=`echo $h | cut -d '/' -f$field`
+    app_dir=`echo $app | cut -d "." -f1`
+    if [ -f $h ]; then
+      sudo rm -rf /opt/tomcat/webapps/$app_dir; sudo mv $h /opt/tomcat/webapps/; sudo chown tomcat.tomcat /opt/tomcat/webapps/*.war
+    else
+      echo "No $h file in /opt/storage"
+    fi
+  done
+
+  # Move collabserver components
+  sudo service collabserver stop
+  if [ -f /opt/storage/collabserver.jar ]; then
+    sudo rm -rf /opt/vertx/bin/*.jar; sudo mv /opt/storage/collabserver.jar /opt/vertx/bin/; sudo chown -R tomcat:tomcat /opt/vertx/bin/*
+  else
+    echo "No collabserver file in /opt/storage"
+  fi
+
+  [[ `cat /opt/storage/starttomcat.txt` == "off" ]] || {
+    sudo rm -rf /opt/vertx/logs/*.log; sudo rm -rf /opt/tomcat/logs/*.log; sudo rm -rf /opt/tomcat/logs/catalina.*
+    sudo touch /opt/vertx/logs/collabserver.log; sudo chown tomcat:tomcat /opt/vertx/logs/collabserver.log
+    # Run db-setup on first run of remote-deploy
+    [[ `cat /opt/storage/schema.txt` != "provisioned" ]] && {
+      echo "Provisioning Initial Schemas"
+      sudo db-setup
+      echo "provisioned" > /opt/storage/schema.txt
+    }
+    sudo service activtomcat restart
+  }
+  sudo service collabserver start
+
+  # Move remaining components of flipchart converter
+  if [ -f /opt/storage/libflipchart2lesson.so.1.1.1 ]; then
+    sudo mv /opt/storage/libflipchart2lesson.so.1.1.1 /usr/lib64/libflipchart2lesson.so.1.1.1
+  fi
+  if [ -f /opt/storage/libflipcharts.so ]; then
+    sudo mv /opt/storage/libflipcharts.so /usr/lib64/libflipcharts.so
+  fi
+  if [ -f /opt/storage/flipchart-cmdline ]; then
+    sudo mv /opt/storage/flipchart-cmdline /usr/local/sbin/flipchart-cmdline; sudo chmod 0755 /usr/local/sbin/flipchart-cmdline
+  fi
+  if [ -f /opt/storage/thumbnails-cmdline ]; then
+    sudo mv /opt/storage/thumbnails-cmdline /usr/local/sbin/thumbnails-cmdline; sudo chmod 0755 /usr/local/sbin/thumbnails-cmdline
+  fi
+  sudo /sbin/ldconfig
+}
+
+echo "Deployment Complete!  Branch: `cat /opt/storage/branch.txt`   Type: `cat /opt/storage/rdtype.txt`   Chef: `cat /opt/storage/chef.txt`"

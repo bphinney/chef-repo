@@ -1,0 +1,10 @@
+[/var/log/httpd/modsec_audit.log]
+tags: modsecurity
+type: modsecurity
+add_field: environment,<%= node.chef_environment %>
+# Beaver multiline requires a match per line to collate lines.
+# By using a regex that matches everything BUT the Modsec -A-
+# headers, it multilines all the log contents between them.
+multiline_regex_before = ^((?!^--[a-fA-F0-9]{8}-A--).)*$
+exclude: \.gz
+

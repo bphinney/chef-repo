@@ -1,0 +1,7 @@
+# Port 8080 for tomcat, open up all tcp ports for internal ranges.
+-A FWR -p tcp -m tcp --dport 8080 -j ACCEPT
+-A FWR -p tcp -m tcp --dport 8085 -j ACCEPT
+-A FWR -p tcp -m tcp --dport 5701 -j ACCEPT
+-A FWR -p tcp -m state --state NEW --source 10.0.0.0/8 -j ACCEPT
+-A FWR -p tcp -m state --state NEW --source 172.31.0.0/16 -j ACCEPT
+

@@ -1,0 +1,93 @@
+#!/bin/bash
+
+###############
+# rpm-gpgsign #
+###############
+#  
+# Works alongside a preconfigured gpg signing mechanism to provide
+# automated rpmfile application signing by file or directory.
+#
+# Use:
+#
+# rpm-gpgsign.sh -d <directory> - Sign all rpm files in the directory path
+#
+# rpm-gpgsign.sh -f <file> - Sign individual file
+#
+
+# File that tracks which rpms have already been signed
+SIGNED_RPMS="<%= @gpg_trackfile -%>"
+
+# Function calls on the expect utility to automate the
+# requrired passphrase interaction for rpm signing
+sign_package() {
+    /usr/bin/expect <<EOD
+set timeout -1
+match_max 100000
+spawn bash -c "rpm --addsign -D '_gpg_name <%= @gpg_user -%>' $1"
+expect -exact "Enter pass phrase: "
+send -- "<%= @gpg_passphrase -%>\r"
+expect eof
+EOD
+}
+
+# Function captures all *.rpm files in a path and performs 
+# an automated signing operation on each one
+sign_rpm_directory() {
+    TRIM_PATH=$(echo $OPTARG | sed 's:/*$::')
+    DIR="$TRIM_PATH"
+    RPM_FILES=$(find $DIR/ -type f -name '*.rpm' -printf '%P\n')
+    for rpmfile in $RPM_FILES; do
+        rpmfile="$DIR/$rpmfile"
+        baserpm=$(basename $rpmfile)
+        if grep -q "$rpmfile" $SIGNED_RPMS; then
+            echo "Application $baserpm is signed."
+        else
+            # sign if not found in the tracking list
+            sign_package "$rpmfile"
+            echo "$rpmfile" >> $SIGNED_RPMS 2>&1
+            echo "Application $baserpm has been signed with key"
+            sort -u $SIGNED_RPMS -o $SIGNED_RPMS
+        fi
+    done
+
+}
+
+# Function performed signing operation on single *.rpm file
+sign_rpm_file() {
+    rpmfile=$(readlink -f $OPTARG)
+    baserpm=$(basename $OPTARG)
+    # Extenstion check
+    if [[ $baserpm == *.rpm ]]; then
+        sign_package "$rpmfile"
+        echo "$rpmfile" >> $SIGNED_RPMS 2>&1
+        sort -u $SIGNED_RPMS -o $SIGNED_RPMS
+        echo "Application $baserpm has been signed with key"
+    else
+        echo "file is not .rpm, exiting"
+        exit 1
+    fi
+}
+
+while getopts ":d:f:" opt; do
+    case $opt in
+      d)
+          echo "Signing rpms in directory $OPTARG" >&2
+          sign_rpm_directory "$OPTARG"
+          ;;
+      f)
+          echo "Signing file $OPTARG" >&2
+          sign_rpm_file "$OPTARG"
+          ;;
+      \?)
+          echo "Invalid option -$OPTARG" >&2
+          exit 1
+          ;;
+      :)
+          echo "Option -$OPTARG requires an argument." >&2
+          exit 1
+          ;;
+    esac
+done
+
+
+

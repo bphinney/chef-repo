@@ -1,0 +1,9 @@
+output {
+  elasticsearch {
+    hosts => "<%= node['kibana']['es_server'] %>:<%= node['kibana']['es_port'] %>"
+    max_retries => "10"
+    timeout => "30"
+    flush_size => "100"
+  }
+}
+

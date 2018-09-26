@@ -1,0 +1,26 @@
+#Properties file for flipchart-integration
+# RabbitMQ Section
+rabbitmq.host=<%= @rabbitmqserver %>
+rabbitmq.port=<%= @rabbitmqport %>
+rabbitmq.classflow.vhost=<%= "/activfoun#{node.chef_environment}" %>
+rabbitmq.classflow.username=<%= "rabbituser#{node.chef_environment}" %>
+rabbitmq.classflow.password=<%= "rabbitpass#{node.chef_environment}" %>
+rabbitmq.classflow.exchange=classflow.topic
+rabbitmq.classflow.import.queuename.request=ha.import.request
+rabbitmq.classflow.import.queuename.response=ha.import.response
+rabbitmq.classflow.import.error.queuename=ha.import.error
+rabbitmq.classflow.import.routingkey.request=import.request.*
+rabbitmq.classflow.import.routingkey.response=import.response.*
+rabbitmq.classflow.import.consumers=5
+rabbitmq.classflow.download.consumers=5
+rabbitmq.classflow.import.error.routingkey=import.error.*
+rabbitmq.addresses=<%= @rmqaddresses %>
+<% if @rmqaddresses.nil? || @rmqaddresses.empty? -%>
+rabbitmq.enable=false
+<% else -%>
+rabbitmq.enable=true
+<% end -%>
+import.job.convert.jni=false
+import.job.convert.timeout=180
+import.job.cmdline=/usr/local/sbin/flipchart-cmdline
+

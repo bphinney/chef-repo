@@ -1,0 +1,13 @@
+################################################################
+##      Mobile Automatic Updates, located in /current/         #
+################################################################
+<% if "test -d /opt/www/current" -%>
+Alias /current        /opt/www/current
+<Directory "/opt/www/current">
+      Options -Indexes
+      DirectoryIndex index.html
+      AllowOverride None
+      Include conf.d/.htaccess
+
+</Directory>
+<% end -%>

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ -f <%= node['yum']['yumrepo_data'] %>/yum-repo/reposync.lock ]; then
+  echo "Repo Sync already taking place and locked"
+else
+  touch <%= node['yum']['yumrepo_data'] %>/yum-repo/reposync.lock
+  yum makecache
+<% node['yum']['yumrepo_reposync'].each do |repoid| -%>
+  cd <%= node['yum']['yumrepo_data'] %>/yum-repo
+  reposync -d --repoid=<%= repoid %>
+  createrepo ./<%= repoid %>
+<% end -%>
+  rm -f <%= node['yum']['yumrepo_data'] %>/yum-repo/reposync.lock
+fi
+

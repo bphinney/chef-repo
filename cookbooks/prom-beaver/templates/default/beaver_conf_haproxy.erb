@@ -1,0 +1,11 @@
+[/var/log/haproxy.log-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]]
+tags: haproxy
+type: haproxy 
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz
+
+[/var/log/haproxy.log]
+tags: haproxy
+type: haproxy
+add_field: environment,<%= node.chef_environment %>
+exclude: \.gz

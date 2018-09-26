@@ -1,0 +1,27 @@
+#!/bin/bash
+# This script will clear log files and restart services
+# Haproxy
+sudo service haproxy stop
+sudo rm -rf /var/log/haproxy-notice.*; sudo rm -rf /var/log/haproxy.log*; sudo rm -rf /var/log/haproxy-status*
+sudo service haproxy start
+echo "haproxy logs cleared"
+# Httpd
+sudo service httpd stop
+sudo rm -rf /var/log/httpd/*log*
+sudo service httpd start
+echo "Httpd logs cleared"
+sudo service rabbitmq-server stop
+sudo rm -rf /var/log/rabbitmq/*
+sudo service rabbitmq-server start
+echo "Rabbitmq logs cleared"
+# Redis server
+sudo service redis stop
+sudo rm -rf /var/log/redis/*
+sudo service redis start
+echo "Redis logs cleared"
+# Zookeeper
+sudo service zookeeper stop
+sudo rm -rf /var/log/zookeeper/*
+sudo service zookeeper start
+echo "Zookeeper logs cleared"
+

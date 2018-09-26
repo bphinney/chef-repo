@@ -1,0 +1,14 @@
+# This file is managed by Chef for <%= node['fqdn'] %>
+# Do NOT modify this file directly.
+#
+[beaver]
+logstash_version: 1
+<% @beaver.each do |key, value| %>
+<%= "#{key}: #{value}" %>
+<% end %>
+<% @files.each do |file| %>
+
+[<%= file['path'] %>]
+type: <%= file['type'] %>
+tags: <%= file['tags'] %>
+<% end %>

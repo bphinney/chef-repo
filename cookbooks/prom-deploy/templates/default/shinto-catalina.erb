@@ -1,0 +1,42 @@
+#!/opt/chef/embedded/bin/ruby -W0
+##########################################################
+## shinto: executing another tool, watching logs and    ##
+## reporting via email.                                 ##
+##                                                      ##
+## Changelog: 1.0, first implimentation                 ##
+##########################################################
+
+##########################################
+## Global Vars                          ##
+##########################################
+
+$dstMsgAddr = "devops@prometheanproduct.com"       ## Destination email address
+$logPath    = "/opt/tomcat/logs"                        ## Location of the logs
+$tenant     = "all"                                     ## Tenant name or / all
+$errString  = "SEVERE"                                  ## The thing you want me to email on
+
+###########################################
+## Master Methods                        ##
+###########################################
+
+def sendMsg 
+  osDate = %x[date "+DATE: %m/%d/%y TIME: %H:%M:%S"]
+  %x[echo "Deployment of applications completed at: #{osDate}" \
+    | mail -s "Backend code deployment completed" -r deployment@classflow.com #{$dstMsgAddr}]
+end
+
+def executeWatch 
+  %x[cd #{$logPath}; \
+    tail -f #{$logPath}/catalina.out | \
+    grep "#{$errString}" | while read; do echo "SEVERE DETECTED in catalina.out" | \
+    mail -s "SEVERE DETECTED in catalina.out" -r deployment@classflow.com #{$dstMsgAddr}; done]
+end
+
+
+# Reindex of types
+puts "(shinto-catalina=>watch): watching catalina logs"
+executeWatch
+sendMsg 
+
+
+

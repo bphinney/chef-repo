@@ -1,0 +1,43 @@
+#!/bin/bash
+
+env=$2
+if [ "$env" == "" ]; then
+  echo "Must include a command and environment"; exit 1
+fi
+
+delay="240"
+
+# Disable function
+disable() {
+
+## DISABLE NAGIOS NOTIFICATIONS FOR ALL SERVICES ON ENVIRONMENT
+  curl -s -d "cmd_typ=66&cmd_mod=2&hostgroup=${env}&btnSubmit=Commit" "http://nagios-server/cgi-bin/nagios/cmd.cgi" -u nagiosadmin:nagiospass
+## DISABLE NAGIOS NOTIFICATIONS FOR ENVIRONMENT
+  curl -s -d "cmd_typ=64&cmd_mod=2&hostgroup=${env}&btnSubmit=Commit" "http://nagios-server/cgi-bin/nagios/cmd.cgi" -u nagiosadmin:nagiospass
+## DISABLE EVENT HANDLERS FOR ENVIRONMENT
+  curl -s -d "cmd_typ=42&cmd_mod=2&hostgroup=${env}&btnSubmit=Commit" "http://nagios-server/cgi-bin/nagios/cmd.cgi" -u nagiosadmin:nagiospass
+## export delay=180
+
+}
+
+#Enable function
+enable() {
+sleep $delay 
+  curl -s -d "cmd_typ=41&cmd_mod=2&hostgroup=${env}&btnSubmit=Commit" "http://nagios-server/cgi-bin/nagios/cmd.cgi" -u nagiosadmin:nagiospass 
+  curl -s -d "cmd_typ=65&cmd_mod=2&hostgroup=${env}&btnSubmit=Commit" "http://nagios-server/cgi-bin/nagios/cmd.cgi" -u nagiosadmin:nagiospass 
+  curl -s -d "cmd_typ=63&cmd_mod=2&hostgroup=${env}&btnSubmit=Commit" "http://nagios-server/cgi-bin/nagios/cmd.cgi" -u nagiosadmin:nagiospass
+
+}
+
+case "$1" in
+    disable)
+        disable
+        ;;
+    enable)
+        enable
+        ;;
+    *)
+        echo "Usage: $0 {enable|disable} {dev|dev2}"
+        exit 1
+        ;;
+esac

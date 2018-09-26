@@ -1,0 +1,192 @@
+#NameVirtualHost <%= node["ipaddress"] %>:80
+################################################################
+## Default Tenant Virtual Host Section                         #
+################################################################
+
+<VirtualHost <%= node["ipaddress"] %>:80>
+
+    DocumentRoot /opt/www/dotcms
+<% unless node['dotcms']['widgetservername'].nil? || node['dotcms']['widgetservername'].empty? -%>
+    ServerName <%= node['dotcms']["widgetservername"] %>
+<% else -%>
+    ServerName <%= node['apache']['apacheservername'] %>
+<% end -%>
+<% unless node['dotcms']['dotcms-maintbypass'].nil? || node['dotcms']['dotcms-maintbypass'].empty? -%>
+    ServerAlias node['dotcms']['dotcms-maintbypass']
+<% end -%>
+<% unless node['dotcms']['dotcmsalias'].nil? || node['dotcms']['dotcmsalias'].empty? -%>
+    ServerAlias <%= node['dotcms']['dotcmsalias'] %>
+<% end -%>
+
+    CustomLog logs/dotcms_access.log combined
+    ErrorLog logs/dotcms_error.log
+    
+    FileETag -INode +MTime +Size
+    Header set Access-Control-Allow-Origin "*"
+
+<% if node['dotcms']['maintenance'] == "true" && `rpm -qa | grep maintenance` -%>
+    Include conf.d/maintenance.redirect
+<% end -%>
+
+    RewriteEngine On
+<% if node['dotcms']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !(/status|/connectiontest) https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+<% end -%>
+# Adding a block for invalid URL currently hitting production.
+    RewriteCond %{QUERY_STRING} ^.*(error=invalid_request|error=access_denied).* [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+<% if node['apache']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+  <% if node['dotcms']['widgetservername'].nil? || node['dotcms']['widgetservername'].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['dotcms']['widgetservername'] %>
+  <% else -%>
+    AuthDigestDomain /opt/www/html https://<%= node['apacheserver'] %>
+  <% end -%>
+<% end -%>
+
+<Directory "/opt/www/dotcms">
+    AllowOverride All
+    DirectoryIndex index.html
+    Include conf.d/.htaccess
+
+<% if node['dotcms']['security'] == "true" -%>
+    AuthType Digest
+    AuthName "RESTRICTED"
+<% if node['dotcms']["widgetservername"].nil? || node['dotcms']["widgetservername"].empty? -%>
+    AuthDigestDomain /opt/www/html https://<%= node['dotcms']["widgetservername"] %>
+<% else -%>
+    AuthDigestDomain /opt/www/html https://<%= node['dotcms']["widgetservername"] %>
+<% end -%>
+    AuthDigestProvider file
+    AuthUserFile /var/www/html/.digest_pw
+    Require valid-user
+<% end -%>
+</Directory>
+
+<% if File.exists?("/etc/httpd/conf.d/dotcms.proxy") -%>
+    Include conf.d/dotcms.proxy
+<% end -%>
+
+</VirtualHost>
+
+<% if File.exists?("/etc/httpd/conf.d/dotcmsmulti.load") -%>
+    Include conf.d/dotcmsmulti.load
+<% end -%>
+
+<% if node['dotcms']['cfsupport'] == "true" -%>
+###############################################################
+## Classflow Support Virtual Host                             #
+###############################################################
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    ServerName <%= node['dotcms']['cfsupportservername'] %>
+
+    #Include conf.d/vhost-global.load
+
+    CustomLog logs/vhost-<%= node['dotcms']['cfsupportservername'] %>_access.log combined
+    ErrorLog logs/vhost-<%= node['dotcms']['cfsupportservername'] %>_error.log
+
+    RewriteEngine On
+
+    <% if node['apache']['maintenance'] == "true" && `rpm -qa | grep maintenance` -%>
+    Include conf.d/maintenance.redirect
+    <% end -%>
+
+    <% if File.exists?("/etc/httpd/conf.d/dotcms.proxy") -%>
+    Include conf.d/dotcms.proxy
+    <% end -%>
+    <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [NE,L,R]
+    <% end -%>
+    RewriteOptions Inherit
+</VirtualHost>
+## End Classflow Support Virtual Host
+<% end -%>
+
+<% if node['dotcms']['cf4school'] == "true" -%>
+###############################################################
+## Classflow4schools Support Virtual Host                     #
+###############################################################
+<VirtualHost <%= node['ipaddress'] %>:80>
+
+    ServerName <%= node['dotcms']['cf4schoolservername'] %>
+    <% unless node['dotcms']['cf4schoolalias'].nil? || node['dotcms']['cf4schoolalias'].empty? -%>
+    ServerAlias <%= node['dotcms']['cf4schoolalias'] %>
+    <% end -%>
+
+    Include conf.d/vhost-global.load
+
+    CustomLog logs/vhost-<%= node['dotcms']['cf4schoolservername'] %>_access.log combined
+    ErrorLog logs/vhost-<%= node['dotcms']['cf4schoolservername'] %>_error.log
+
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} ^/$
+    <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteRule ^/$ https://<%= node['apache']['apacheservername'] %>/gb [L,R]
+    <% else -%>
+    RewriteRule ^/$ http://<%= node['apache']['apacheservername'] %>/gb [NE,L,R]
+    <% end -%>
+
+    <% if node['apache']['maintenance'] == "true" && `rpm -qa | grep maintenance` -%>
+    Include conf.d/maintenance.redirect
+    <% end -%>
+
+
+    <% if File.exists?("/etc/httpd/conf.d/dotcms.proxy") -%>
+    Include conf.d/dotcms.proxy
+    <% end -%>
+    <% if node['apache']['sslRedirect'] == "true" -%>
+    #RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    #RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+    <% end -%>
+    RewriteOptions Inherit
+</VirtualHost>
+## End Classflow4schools Support Virtual Host
+<% end -%>
+
+<% if node['dotcms']['language_redirect'] == "true" -%>
+###############################################################
+##  DotCMS Language Redirection Virtual Host                  #
+###############################################################
+
+    <% node['dotcms']['languages'].each do |http_host,lang| %>
+<VirtualHost <%= node['ipaddress'] %>:80>
+    ServerName <%= http_host %>
+    ServerAlias www.<%= http_host %>
+
+    Include conf.d/vhost-global.load
+
+    CustomLog logs/vhost-<%= http_host -%>_language_redirect_access.log combined
+    ErrorLog logs/vhost-<%= http_host -%>_language_redirect_error.log
+
+    RewriteEngine On
+    <% if node['apache']['maintenance'] == "true" && `rpm -qa | grep maintenance` -%>
+    Include conf.d/maintenance.redirect
+    <% end -%>
+
+    <% if File.exists?("/etc/httpd/conf.d/dotcms.proxy") -%>
+    Include conf.d/dotcms.proxy
+    <% end -%>
+
+    RewriteCond %{REQUEST_URI} ^/$
+      <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteRule ^/$ https://<%= node['apache']['apacheservername'] %>/<%= lang -%>/ [L,R]
+      <% else -%>
+    RewriteRule ^/$ http://<%= node['apache']['apacheservername'] %>/<%= lang -%>/ [NE,L,R]
+      <% end -%>
+
+      <% if node['apache']['sslRedirect'] == "true" -%>
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule !/status https://%{SERVER_NAME}%{REQUEST_URI} [L,R]
+      <% end -%>
+    RewriteOptions Inherit
+</VirtualHost>
+
+    <% end -%>
+## End Dotcms Language Redirection Virtual Host
+<% end -%>
+

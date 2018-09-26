@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#This will pgrep for the logstash service on the logstash-server2 node.  Will send nagios email alerts when logstash climbs over 7gb mem.
+
+
+export logstashmem=`pgrep -U logstash | xargs pmap | grep total | awk '{print $2}' | rev | cut -c2- | rev`
+export memlimit=7000000
+
+[ $logstashmem -lt $memlimit ] && {
+  mem_code=0
+  mem_message="OK - ${logstashmem}K memory used by logstash"
+} || {
+  mem_code=1
+  mem_message="CRITICAL - ${logstashmem}K memory used by logstash!"
+}
+
+echo "${mem_message}"
+exit $mem_code

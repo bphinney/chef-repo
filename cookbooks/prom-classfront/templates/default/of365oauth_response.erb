@@ -1,0 +1,90 @@
+#!/opt/chef/embedded/bin/ruby -W0
+##########################################################
+## oauth_response - a tools for parsing the modsecurity ##
+##                  and taking action.                  ##
+##                  This script will live on the front- ##
+##                  end servers running modsecurity.    ##
+##########################################################
+require 'fileutils'
+
+##########################################################
+## Vars                                                 ##
+##########################################################
+modSecurityLog="/var/log/httpd/modsec_audit.log"
+securityString1="POST /activfoundation/login/oauth/office365/callback"
+securityString2="HTTP/1.1 400 Bad Request"
+securityString3="referer: https://classflow.com/register/"
+detailString="X-Forwarded-For:"
+modsecLogFile="/var/log/httpd/modsec_audit.log"
+hourlyBreachAttempts = 5
+trackerLogFile="/var/log/httpd/modsec_audit.tracker"
+dstMsgAddr="devops@prometheanproduct.com"
+souchef="<%= @souschefloc %>:4567"
+apikey="8b194147eae3f43ab6d2f241cc1670d0"
+
+$/ = "-Z--\n";   #Input Record Seperator to create chunk
+
+iparray = []
+timeary = []
+newarray = []
+instanceHash = {}
+newcount=0
+
+##########################################################
+## Main                                                 ##
+##########################################################
+file = File.open("#{modsecLogFile}", "r") 
+file.each_line do |chunk| 
+if chunk.include?("#{securityString1}") and chunk.include?("#{securityString2}") and chunk.include?("#{securityString3}")
+    $/ = "\n";
+
+    chunk.each_line do |line|
+      if line.include?("[") 
+         timeary << line[1..20] if line =~ /\[/ 
+      elsif line.include?("#{detailString}") 
+         iparray << line.split("#{detailString} ", 2) if line =~ /#{detailString} (\d+.\d+.\d+.\d+)/
+      end
+    end 
+    timevr = timeary[newcount].split(":",2).last.split(":",3).first unless timeary[newcount].nil?
+    ipaddr = iparray[newcount].join unless iparray[newcount].nil?; ipaddr.chomp!
+    instanceHash[newcount] = { "time" => timevr, "ipaddr" => ipaddr }
+    newarray[newcount] = [ "#{timevr} #{ipaddr}" ] 
+    newcount += 1
+  end  
+end
+file.close
+
+# This is where we define the email message
+def sendEmailNotification (ipAddress,dstMsgAddr)
+  %x[echo "DICTIONARY ATTACK ON Google OAUTH DETECTED IP: #{ipAddress}" \
+  | mail -s "DICTIONARY ATTACK ON Google OAUTHDETECTED IP: #{ipAddress}" #{dstMsgAddr}]
+end
+
+# There is where we call Souschef to perform the IP Block
+def souschefBanIp (ipAddress,souchef,apikey)
+  %x[curl -s '#{souchef}/api' \
+    -d 'apikey=#{apikey}'\
+    -d 'x=cip' \
+    -d 'ipaddress=#{ipAddress}' \
+    -d 'access=ban']
+end
+
+newarray.uniq.each do |a|
+  hour = a.join.split(" ",2).first
+  ipAddress = a.join.split(" ",2).last
+  hourlyCount = newarray.count(a)
+    if hourlyCount >= hourlyBreachAttempts 
+      FileUtils.touch("#{trackerLogFile}")
+      if File.readlines("#{trackerLogFile}").any?{ |l| l["#{hour} #{ipAddress}"] }
+        puts "IP: #{ipAddress} / HOUR: #{hour} already tracked."
+      else
+        souschefBanIp "#{ipAddress}","#{souchef}","#{apikey}"
+        puts "(THRESHOLD BREACHED) during hour: #{hour}, attempts: #{hourlyCount} for ip: #{ipAddress}."
+        sendEmailNotification "#{ipAddress}","#{dstMsgAddr}"
+        open("#{trackerLogFile}", 'a') do |f|
+          f << "#{hour} #{ipAddress}\n"
+        end
+      end
+    end
+end
+

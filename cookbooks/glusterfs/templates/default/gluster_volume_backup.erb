@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+#This is the cron script for backing up the gluster fs volumes.
+
+gluster_source_mount=/<%= @gluster_source_mount %>
+gluster_backup_mount=/<%= @gluster_bkup_mount %>
+gluster_backup_lock=/var/lock/subsys/gluster_<%= @gluster_source_mount %>_backup.lock
+gluster_backup_logfile=/var/log/glusterfs/gluster_<%= @gluster_source_mount %>_backup.log
+
+function start_backup () {
+  if [ ! -f "${gluster_backup_lock}" ]; then
+    mv ${gluster_backup_logfile} ${gluster_backup_logfile}.1
+      # Let's roll the old compressed log file
+      if [ -f "${gluster_backup_logfile}.1.gz" ]; then
+         rm -f ${gluster_backup_logfile}.1.gz
+      fi
+      # Let's compress the old log file
+      if [ -f "${gluster_backup_logfile}.1" ]; then
+         gzip ${gluster_backup_logfile}.1 &
+      fi 
+      # Create lock file since it does not exist.
+      touch ${gluster_backup_lock}
+    echo "Starting backup of: ${gluster_source_mount} to ${gluster_backup_mount}" | tee -a ${gluster_backup_logfile}
+    rsync -avzh -H --delete ${gluster_source_mount}/* ${gluster_backup_mount}/ | tee -a ${gluster_backup_logfile}
+    echo "Backup complete, removing lock file." | tee -a ${gluster_backup_logfile}
+      # Remove lock file since we a now done.
+      rm -f ${gluster_backup_lock} 
+  else
+    echo "Lock file exist, can not run this time." | tee -a ${gluster_backup_logfile}
+  fi
+}
+
+# adding safeguard for existance of backup directory
+if [ -d "${gluster_backup_mount}" ]; then
+   start_backup
+else
+   echo "Backup target: ${gluster_backup_mount} does not exist!  Can not backup." | tee -a ${gluster_backup_logfile}
+fi
+
+exit 0
+
